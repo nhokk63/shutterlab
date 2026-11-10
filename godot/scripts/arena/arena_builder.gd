@@ -14,7 +14,7 @@ extends Node3D
 ##   - Ad boards: green/blue boards with the fictional brand "SHUTTLELAB"
 ##     (no real brand or tournament name is used anywhere).
 ##   - Lighting: 6 spotlights, 5600K (1, 0.96, 0.88), 10 m high, 2 rows
-##     of 3, intensity 300, range 22 m, 50 deg cone; only the far-middle
+##     of 3, intensity 3.0, range 22 m, 50 deg cone; only the far-middle
 ##     spot casts shadows (1024). 4 fake additive light cones under the
 ##     corner spots, a dim cold directional fill (0.1), and a dark
 ##     WorldEnvironment (ambient 0.05/0.06/0.09, exponential fog 0.008).
@@ -30,13 +30,17 @@ extends Node3D
 ##     arena.build(GraphicsQuality.tier_crowd_count(GraphicsQuality.current_tier()))
 ## The camera stays in main.gd (0, 6.5, -10.5, fov 55, look at (0,1,2)).
 ##
-## Brightness note (same caveat as Unity): the spot intensity (300) comes
-## from the 1/d^2 formula, it has NOT been verified by eye yet. If the
-## court looks too dark/bright on a real device, tune SPOT_INTENSITY.
+## Brightness note (VERIFIED ON DEVICE 2026-11-10): the original
+## intensity 300 was copied from the Unity value (candela), but Godot 4
+## in non-physical mode treats light_energy as a plain multiplier where
+## 1.0 is normal — 6 spots x 300 blew the whole court white on the
+## phone (screenshots: court, stands and players all washed out).
+## SPOT_INTENSITY 3.0 + ambient 0.25 is the corrected value for Godot.
+## Do NOT copy Unity candela numbers into Godot light_energy again.
 ## All colours are copied from the Unity Linear-space values.
 
 const CROWD_DEFAULT := 1008
-const SPOT_INTENSITY := 300.0
+const SPOT_INTENSITY := 3.0
 const SPOT_HEIGHT := 10.0
 const SPOT_RANGE := 22.0
 const SPOT_ANGLE := 50.0
@@ -103,14 +107,14 @@ func _build_environment() -> void:
 	environment.background_color = Color(0.02, 0.03, 0.05)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.ambient_light_color = Color(0.05, 0.06, 0.09)
-	environment.ambient_light_energy = 1.0
+	environment.ambient_light_energy = 0.25
 	# Fog so the far stands sink into darkness (court:stands ~8:1-12:1).
 	environment.fog_enabled = true
 	environment.fog_light_color = Color(0.008, 0.009, 0.015)
 	environment.fog_density = 0.008
 	# Glow exists for the bloom flag but stays off until enabled.
 	environment.glow_enabled = false
-	environment.glow_intensity = 0.8
+	environment.glow_intensity = 0.4
 	environment.glow_strength = 1.0
 	_world_env = WorldEnvironment.new()
 	_world_env.environment = environment

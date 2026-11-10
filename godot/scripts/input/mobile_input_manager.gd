@@ -26,6 +26,9 @@ signal pause_requested
 var joystick_panel: Control
 var shot_buttons_panel: Control
 
+## Touch controls layer (built in code when the scene has no panels).
+var _controls_layer: CanvasLayer
+
 var _user: PlayerController
 var _match: MatchManager
 var _joystick_input: Vector2 = Vector2.ZERO
@@ -47,6 +50,80 @@ func _ready() -> void:
 		joystick_panel = get_node_or_null("JoystickPanel") as Control
 	if shot_buttons_panel == null:
 		shot_buttons_panel = get_node_or_null("ShotButtonsPanel") as Control
+	# BUG (found on device 2026-11-10): main.tscn has NO JoystickPanel /
+	# ShotButtonsPanel, and nothing ever created them — so the game
+	# shipped with zero touch controls (no joystick, no shot buttons).
+	# Build them here in code when the scene does not provide them.
+	if joystick_panel == null or shot_buttons_panel == null:
+		_build_touch_controls()
+
+## Show / hide the touch controls. main.gd shows them during a match
+## and hides them in the menu, while paused, and on the results screen.
+func set_controls_visible(v: bool) -> void:
+	if _controls_layer != null:
+		_controls_layer.visible = v
+
+## Build the joystick + shot buttons in code (Unity-style placement via
+## UITheme.place, y-up, 1280x720 reference). Joystick bottom-left,
+## shot buttons bottom-right, both 90 px above the bottom edge so they
+## clear the stamina bars at the very bottom of the screen.
+func _build_touch_controls() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "TouchControls"
+	layer.layer = 10
+	add_child(layer)
+	_controls_layer = layer
+	_controls_layer.visible = false  # shown by main.gd when a match starts
+
+	# --- Joystick (bottom-left) ---
+	joystick_panel = Control.new()
+	joystick_panel.name = "JoystickPanel"
+	UITheme.place(joystick_panel, Vector2.ZERO, Vector2.ZERO,
+		Vector2(150, 210), Vector2(240, 240))
+	layer.add_child(joystick_panel)
+	var joy := VirtualJoystick.new()
+	joy.name = "Joystick"
+	joy.input_manager = self
+	joy.set_anchors_preset(Control.PRESET_FULL_RECT)
+	joystick_panel.add_child(joy)
+
+	# --- Shot buttons (bottom-right, 2 cols x 3 rows) ---
+	shot_buttons_panel = Control.new()
+	shot_buttons_panel.name = "ShotButtonsPanel"
+	UITheme.place(shot_buttons_panel, Vector2(1, 0), Vector2(1, 0),
+		Vector2(-170, 210), Vector2(280, 240))
+	layer.add_child(shot_buttons_panel)
+	var grid := GridContainer.new()
+	grid.name = "ShotGrid"
+	grid.columns = 2
+	grid.set_anchors_preset(Control.PRESET_FULL_RECT)
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	shot_buttons_panel.add_child(grid)
+	_add_shot_button(grid, "Cao", ShotData.ShotType.CLEAR, false)
+	_add_shot_button(grid, "Nhỏ", ShotData.ShotType.DROP, false)
+	_add_shot_button(grid, "Đập", ShotData.ShotType.SMASH, false)
+	_add_shot_button(grid, "Drive", ShotData.ShotType.DRIVE, false)
+	_add_shot_button(grid, "Lưới", ShotData.ShotType.NET_SHOT, false)
+	_add_shot_button(grid, "Giao", ShotData.ShotType.SERVE_LOW, true)
+
+func _add_shot_button(parent: Control, text: String, shot_type: int, is_serve: bool) -> void:
+	var b := ShotButton.new()
+	b.name = "Shot_%s" % text
+	b.text = text
+	b.shot_type = shot_type
+	b.is_serve_button = is_serve
+	b.input_manager = self
+	b.custom_minimum_size = Vector2(128, 68)
+	# Serve button is green so it is easy to find when serving.
+	b.add_theme_stylebox_override("normal",
+		UITheme.style(UITheme.BUTTON_SELECTED if is_serve else UITheme.BUTTON_NORMAL))
+	b.add_theme_stylebox_override("hover", UITheme.style(UITheme.BUTTON_HOVER))
+	b.add_theme_stylebox_override("pressed", UITheme.style(UITheme.BUTTON_SELECTED))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", UITheme.TEXT_WHITE)
+	b.add_theme_font_size_override("font_size", 24)
+	parent.add_child(b)
 
 func _process(_delta: float) -> void:
 	if _user == null or _match == null:

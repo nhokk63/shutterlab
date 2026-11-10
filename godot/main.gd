@@ -64,9 +64,11 @@ func _ready() -> void:
 # ---------------------------------------------------------------- arena
 
 func _build_camera() -> void:
-	# Camera matches the Unity BehindPlayer preset.
+	# Camera matches the Unity BehindPlayer preset (pulled in a little
+	# on device 2026-11-10: the old (0, 6.5, -10.5) made the players
+	# look small on the phone).
 	_camera = Camera3D.new()
-	_camera.position = Vector3(0, 6.5, -10.5)
+	_camera.position = Vector3(0, 5.8, -9.2)
 	_camera.fov = 55.0
 	add_child(_camera)
 	_camera.look_at(Vector3(0, 1, 2), Vector3.UP)
@@ -88,6 +90,8 @@ func _show_main_menu() -> void:
 		_bootstrap.queue_free()
 		_bootstrap = null
 		_match = null
+	if _input != null:
+		_input.set_controls_visible(false)
 	_menu = MainMenu.new()
 	_menu.name = "MainMenu"
 	add_child(_menu)
@@ -123,6 +127,7 @@ func _start_match(mode: int, difficulty: int, practice: bool) -> void:
 	_match = _bootstrap.setup(shuttle, _camera, _input, mode, difficulty, _game_state)
 	rules = _match.rules
 	_input.bind(_match.players[0], _match)
+	_input.set_controls_visible(true)
 	_cam_mgr.set_preset(_game_state.camera_preset)
 
 	_hud = HudManager.new()
@@ -149,6 +154,8 @@ func _on_score_changed(_score) -> void:
 func _on_match_end(winner: int) -> void:
 	if _hud == null or _match == null:
 		return
+	if _input != null:
+		_input.set_controls_visible(false)
 	var stats := _match.stats
 	var coins := 0
 	if _match.game_mode != null:
@@ -167,12 +174,18 @@ func _on_match_end(winner: int) -> void:
 
 func _on_pause_requested() -> void:
 	get_tree().paused = true
+	if _input != null:
+		_input.set_controls_visible(false)
 
 func _on_resume_requested() -> void:
 	get_tree().paused = false
+	if _input != null:
+		_input.set_controls_visible(true)
 
 func _on_restart_requested() -> void:
 	get_tree().paused = false
+	if _input != null:
+		_input.set_controls_visible(true)
 	if _match != null:
 		_match.start_match(_game_state.difficulty, _match.is_practice)
 
@@ -182,6 +195,8 @@ func _on_quit_requested() -> void:
 
 func _on_rematch_requested() -> void:
 	get_tree().paused = false
+	if _input != null:
+		_input.set_controls_visible(true)
 	if _match != null:
 		_match.start_match(_game_state.difficulty, _match.is_practice)
 

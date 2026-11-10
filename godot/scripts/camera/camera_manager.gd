@@ -66,7 +66,7 @@ func desired() -> Dictionary:
 	var look_at := Vector3.ZERO
 	match current_preset:
 		CamPreset.BEHIND_PLAYER:
-			pos = Vector3(0, 6.5, -10.5)
+			pos = Vector3(0, 5.8, -9.2)
 			look_at = Vector3(0, 1, 2)
 			# Shuttle flying high lifts the camera a little.
 			pos.y += _shuttle_lift()
@@ -81,7 +81,7 @@ func desired() -> Dictionary:
 				pos = _shuttle.global_position + Vector3(0, 4, -7)
 				look_at = _shuttle.global_position
 			else:
-				pos = Vector3(0, 6.5, -10.5)
+				pos = Vector3(0, 5.8, -9.2)
 				look_at = Vector3(0, 1, 2)
 		CamPreset.SIDE:
 			pos = Vector3(10, 3, 0)
@@ -90,7 +90,7 @@ func desired() -> Dictionary:
 			pos = Vector3(0, 13, -2)
 			look_at = Vector3.ZERO
 		_:
-			pos = Vector3(0, 6.5, -10.5)
+			pos = Vector3(0, 5.8, -9.2)
 			look_at = Vector3(0, 1, 2)
 	return {"pos": pos, "look_at": look_at}
 
