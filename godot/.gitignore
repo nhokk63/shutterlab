@@ -1,0 +1,4 @@
+# Godot import cache + build outputs — never commit.
+.godot/
+*.apk
+*.idsig
