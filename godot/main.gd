@@ -41,6 +41,11 @@ func _ready() -> void:
 	shuttle.wind = wind
 	add_child(shuttle)
 
+	var trajectory := TrajectoryPreview.new()
+	trajectory.name = "TrajectoryPreview"
+	add_child(trajectory)
+	trajectory.setup(shuttle)
+
 	_input = MobileInputManager.new()
 	_input.name = "MobileInput"
 	add_child(_input)
@@ -64,14 +69,14 @@ func _ready() -> void:
 # ---------------------------------------------------------------- arena
 
 func _build_camera() -> void:
-	# Camera matches the BehindPlayer preset: low and flat, broadcast
-	# style (see CameraManager — pulled down on device 2026-11-10 so
-	# the court reads flat like the reference image).
+	# Camera matches the BehindPlayer preset: Pure Badminton
+	# broadcast — high, far, narrow FOV (telephoto) so the court
+	# reads flat and the whole court is visible.
 	_camera = Camera3D.new()
-	_camera.position = Vector3(0, 2.2, -8.5)
-	_camera.fov = 55.0
+	_camera.position = Vector3(0, 6.0, -14.5)
+	_camera.fov = 42.0
 	add_child(_camera)
-	_camera.look_at(Vector3(0, 1.4, 2.5), Vector3.UP)
+	_camera.look_at(Vector3(0, 1.0, 1.5), Vector3.UP)
 
 func _build_arena() -> void:
 	# Full v0.2 TV-broadcast arena (dark stands, 6 spotlights, 1008 crowd,

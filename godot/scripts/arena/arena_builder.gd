@@ -46,8 +46,8 @@ const SPOT_RANGE := 22.0
 const SPOT_ANGLE := 50.0
 const AD_BRAND := "SHUTTLELAB"
 
-const COURT_BLUE := Color(0.10, 0.32, 0.62)
-const COURT_GREEN := Color(0.12, 0.45, 0.25)
+const COURT_GREEN := Color(0.15, 0.55, 0.30)  # green playing surface (Pure Badminton)
+const SURROUND_BLUE := Color(0.07, 0.10, 0.30)  # dark blue surround, like the video
 const FLOOR_DARK := Color(0.05, 0.08, 0.14)
 const LINE_WHITE := Color(0.95, 0.95, 0.92)
 const POST_DARK := Color(0.10, 0.10, 0.12)
@@ -126,11 +126,11 @@ func _build_court() -> void:
 	var court_root := Node3D.new()
 	court_root.name = "Court"
 	add_child(court_root)
-	# Blue TV court (semi-gloss), green surround, dark arena floor.
+	# Green Pure Badminton court (semi-gloss), dark blue surround, dark arena floor.
 	_add_box(court_root, "CourtSurface", Vector3(0, -0.05, 0), Vector3(8, 0.1, 15),
-		_mat("CourtBlue", COURT_BLUE, 0.4))
+		_mat("CourtGreen", COURT_GREEN, 0.4))
 	_add_box(court_root, "SurroundFloor", Vector3(0, -0.06, 0), Vector3(26, 0.08, 32),
-		_mat("CourtGreen", COURT_GREEN, 0.85))
+		_mat("SurroundBlue", SURROUND_BLUE, 0.85))
 	_add_box(court_root, "ArenaFloor", Vector3(0, -0.08, 0), Vector3(44, 0.08, 40),
 		_mat("FloorDark", FLOOR_DARK, 0.9))
 	# White lines (0.04 m wide; box centre y = 0.006, top y = 0.026).

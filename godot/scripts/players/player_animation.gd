@@ -56,6 +56,10 @@ func play_clip(clip_name: String, speed: float, on_contact: Callable, on_end: Ca
 	_on_contact = on_contact
 	_on_end = on_end
 	_contact_fired = false
+	# The Ara rig plays the GLB's own swing clip for shots (the
+	# procedural swing poses do not move the Mixamo skeleton).
+	if _visual != null:
+		_visual.play_swing_for_shot(clip_name, float(_clip_def(clip_name).get("duration", 0.7)))
 
 ## Play a looping clip: "Idle", "Ready" or "Run".
 func play_loop(clip_name: String) -> void:
@@ -105,6 +109,11 @@ func _process(delta: float) -> void:
 ## body instead of the character gliding across the court.
 func _update_locomotion() -> void:
 	if _visual == null:
+		return
+	# During a shot swing, the rig plays the GLB swing clip; do not
+	# override it with Idle (it resumes when the shot clip ends).
+	var def := _clip_def(_current)
+	if float(def.get("contact", -1.0)) >= 0.0:
 		return
 	var clip := "Idle"
 	if _current == "Run":

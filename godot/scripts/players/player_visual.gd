@@ -143,6 +143,13 @@ func set_pose(pose: Dictionary) -> void:
 func set_locomotion(_clip_name: String) -> void:
 	pass
 
+## Play a swing animation for a shot clip. The procedural rig animates
+## the swing through set_pose, so this is a no-op here; the Ara rig
+## overrides it to play the GLB's own swing clips (Sword slash /
+## Throw grenade) so the arm actually moves when the player hits.
+func play_swing_for_shot(_shot_clip: String, _game_duration: float) -> void:
+	pass
+
 ## Reset all joints to the identity rotation.
 func reset_pose() -> void:
 	for joint_name in joints:

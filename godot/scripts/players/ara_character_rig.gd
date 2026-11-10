@@ -116,7 +116,30 @@ func set_locomotion(clip_name: String) -> void:
 	if clip_name == _locomotion:
 		return
 	_locomotion = clip_name
+	_anim_player.speed_scale = 1.0
 	_anim_player.play(clip_name)
+
+## Play the GLB's swing clip for a shot. Overhead shots (Smash /
+## Clear / Serve) use "Throw grenade" (overhead throw); side and
+## underarm shots use "Sword slash". The clip is sped up so it roughly
+## matches the game's shot duration (capped at 2x so it does not blur).
+## PlayerAnimation skips set_locomotion while a shot clip plays, so the
+## swing is not cut off by Idle.
+func play_swing_for_shot(shot_clip: String, game_duration: float) -> void:
+	if not _loaded or _anim_player == null:
+		return
+	var glb_clip := "Sword slash"
+	if shot_clip in ["Smash", "Clear", "Serve"]:
+		glb_clip = "Throw grenade"
+	elif shot_clip not in ["Drop", "NetShot", "Block", "Drive", "Push"]:
+		return  # not a shot (e.g. Celebrate) — no swing
+	if not _anim_player.has_animation(glb_clip):
+		return
+	var glb_len: float = _anim_player.get_animation(glb_clip).length
+	var speed := clampf(glb_len / maxf(0.1, game_duration), 1.0, 2.0)
+	_locomotion = glb_clip
+	_anim_player.speed_scale = speed
+	_anim_player.play(glb_clip)
 
 ## Apply a pose dict. For the Ara rig this only updates the proxy
 ## Node3Ds — the skeleton keeps playing the GLB's own Idle clip.
