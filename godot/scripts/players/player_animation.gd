@@ -97,6 +97,19 @@ func _process(delta: float) -> void:
 			end_cb.call()
 
 	_apply_pose()
+	_update_locomotion()
+
+## Tell the visual which locomotion clip to play (Idle / Walk / Run).
+## The procedural rig ignores this (it animates through set_pose);
+## the Ara rig switches the GLB's own clips so the legs move with the
+## body instead of the character gliding across the court.
+func _update_locomotion() -> void:
+	if _visual == null:
+		return
+	var clip := "Idle"
+	if _current == "Run":
+		clip = "Walk" if _run_speed < 0.45 else "Run"
+	_visual.set_locomotion(clip)
 
 # ---------------------------------------------------------------- poses
 

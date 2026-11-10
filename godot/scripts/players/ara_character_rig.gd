@@ -8,9 +8,12 @@ extends PlayerVisual
 ##
 ## The GLB has no badminton animations, so the procedural pose clips
 ## (Ready / Smash / Run / ...) still drive the body — the mesh, skin and
-## clothes are the realistic part. The GLB's own clips (Idle / Walk /
-## Run / Sword slash / Throw grenade) are NOT used by the gameplay
-## animation system.
+## clothes are the realistic part. The GLB's own LOCOMOTION clips
+## (Idle / Walk / Run) ARE used: set_locomotion() switches them by
+## movement speed, so the legs move with the body instead of the
+## character gliding across the court. (The swing clips — Sword slash /
+## Throw grenade — are not wired up yet; the procedural swing poses are
+## ignored for the Mixamo skeleton, so shots currently play in Idle.)
 ##
 ## Usage: PlayerController creates AraCharacterRig instead of
 ## PlayerVisual when the GLB is available; build(stats) picks the male
@@ -43,6 +46,8 @@ var _skeleton: Skeleton3D
 var _bone_idx: Dictionary = {}  # joint name -> bone index
 var _racket_tip: Node3D
 var _loaded := false
+var _anim_player: AnimationPlayer
+var _locomotion := ""
 
 ## Build the rig. use_female picks the woman GLB, else the man GLB.
 ## Falls back to the procedural visual (super.build) if the GLB fails.
@@ -93,8 +98,25 @@ func build(stats: PlayerStats, use_female: bool = false) -> void:
 	# place and the AI cannot reach the shuttle (verified: with poses
 	# applied the AI loses 0-9; without them the reach check works).
 	var ap := _find_anim_player(inst)
+	_anim_player = ap
 	if ap != null and ap.has_animation("Idle"):
 		ap.play("Idle")
+		_locomotion = "Idle"
+
+## Switch the GLB's own locomotion clip (Idle / Walk / Run). Only
+## switches when the clip actually changes, so the animation is never
+## restarted every frame. Unknown clips fall back to Idle.
+func set_locomotion(clip_name: String) -> void:
+	if not _loaded or _anim_player == null:
+		return
+	if clip_name == _locomotion:
+		return
+	if not _anim_player.has_animation(clip_name):
+		clip_name = "Idle"
+	if clip_name == _locomotion:
+		return
+	_locomotion = clip_name
+	_anim_player.play(clip_name)
 
 ## Apply a pose dict. For the Ara rig this only updates the proxy
 ## Node3Ds — the skeleton keeps playing the GLB's own Idle clip.

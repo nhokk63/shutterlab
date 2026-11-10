@@ -136,6 +136,13 @@ func set_pose(pose: Dictionary) -> void:
 		if joint != null:
 			joint.rotation = pose[joint_name]
 
+## Switch the locomotion clip (Idle / Walk / Run). The procedural rig
+## animates locomotion through set_pose, so this is a no-op here; the
+## Ara rig overrides it to switch the GLB's own clips (otherwise the
+## body glides across the court while the legs stand still).
+func set_locomotion(_clip_name: String) -> void:
+	pass
+
 ## Reset all joints to the identity rotation.
 func reset_pose() -> void:
 	for joint_name in joints:
