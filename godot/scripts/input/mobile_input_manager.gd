@@ -75,11 +75,11 @@ func _build_touch_controls() -> void:
 	_controls_layer = layer
 	_controls_layer.visible = false  # shown by main.gd when a match starts
 
-	# --- Joystick (bottom-left) ---
+	# --- Joystick (bottom-left, bigger: 300 px so a thumb finds it) ---
 	joystick_panel = Control.new()
 	joystick_panel.name = "JoystickPanel"
 	UITheme.place(joystick_panel, Vector2.ZERO, Vector2.ZERO,
-		Vector2(150, 210), Vector2(240, 240))
+		Vector2(170, 240), Vector2(300, 300))
 	layer.add_child(joystick_panel)
 	var joy := VirtualJoystick.new()
 	joy.name = "Joystick"
@@ -87,11 +87,11 @@ func _build_touch_controls() -> void:
 	joy.set_anchors_preset(Control.PRESET_FULL_RECT)
 	joystick_panel.add_child(joy)
 
-	# --- Shot buttons (bottom-right, 2 cols x 3 rows) ---
+	# --- Shot buttons (bottom-right, 2 cols x 3 rows, bigger buttons) ---
 	shot_buttons_panel = Control.new()
 	shot_buttons_panel.name = "ShotButtonsPanel"
 	UITheme.place(shot_buttons_panel, Vector2(1, 0), Vector2(1, 0),
-		Vector2(-170, 210), Vector2(280, 240))
+		Vector2(-180, 240), Vector2(320, 280))
 	layer.add_child(shot_buttons_panel)
 	var grid := GridContainer.new()
 	grid.name = "ShotGrid"
@@ -114,7 +114,7 @@ func _add_shot_button(parent: Control, text: String, shot_type: int, is_serve: b
 	b.shot_type = shot_type
 	b.is_serve_button = is_serve
 	b.input_manager = self
-	b.custom_minimum_size = Vector2(128, 68)
+	b.custom_minimum_size = Vector2(150, 84)
 	# Serve button is green so it is easy to find when serving.
 	b.add_theme_stylebox_override("normal",
 		UITheme.style(UITheme.BUTTON_SELECTED if is_serve else UITheme.BUTTON_NORMAL))

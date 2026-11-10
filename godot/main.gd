@@ -64,14 +64,14 @@ func _ready() -> void:
 # ---------------------------------------------------------------- arena
 
 func _build_camera() -> void:
-	# Camera matches the Unity BehindPlayer preset (pulled in a little
-	# on device 2026-11-10: the old (0, 6.5, -10.5) made the players
-	# look small on the phone).
+	# Camera matches the BehindPlayer preset: low and flat, broadcast
+	# style (see CameraManager — pulled down on device 2026-11-10 so
+	# the court reads flat like the reference image).
 	_camera = Camera3D.new()
-	_camera.position = Vector3(0, 5.8, -9.2)
+	_camera.position = Vector3(0, 2.2, -8.5)
 	_camera.fov = 55.0
 	add_child(_camera)
-	_camera.look_at(Vector3(0, 1, 2), Vector3.UP)
+	_camera.look_at(Vector3(0, 1.4, 2.5), Vector3.UP)
 
 func _build_arena() -> void:
 	# Full v0.2 TV-broadcast arena (dark stands, 6 spotlights, 1008 crowd,

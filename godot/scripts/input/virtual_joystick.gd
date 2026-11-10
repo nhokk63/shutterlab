@@ -78,7 +78,12 @@ func _gui_input(event: InputEvent) -> void:
 		_update_knob(mm.position)
 
 func _update_knob(screen_pos: Vector2) -> void:
-	var local := screen_pos - global_position - size * 0.5
+	# NOTE: _gui_input hands us positions in the CONTROL's LOCAL space
+	# (the Viewport transforms them before dispatch). Do NOT subtract
+	# global_position here — the old code did and every touch produced
+	# a wildly wrong vector (verified on device 2026-11-10: a touch on
+	# the joystick centre drove the player backwards at full speed).
+	var local := screen_pos - size * 0.5
 	var max_radius := minf(size.x, size.y) * 0.5
 	if max_radius <= 1.0:
 		return

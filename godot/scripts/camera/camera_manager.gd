@@ -66,8 +66,13 @@ func desired() -> Dictionary:
 	var look_at := Vector3.ZERO
 	match current_preset:
 		CamPreset.BEHIND_PLAYER:
-			pos = Vector3(0, 5.8, -9.2)
-			look_at = Vector3(0, 1, 2)
+			# Low, flat, broadcast-style view like the reference image
+			# (device feedback 2026-11-10: the old high camera made the
+			# court look like a steep trapezoid). Camera just above the
+			# player's head, looking almost level — the court reads flat
+			# and the players are large.
+			pos = Vector3(0, 2.2, -8.5)
+			look_at = Vector3(0, 1.4, 2.5)
 			# Shuttle flying high lifts the camera a little.
 			pos.y += _shuttle_lift()
 		CamPreset.ELEVATED:
@@ -81,8 +86,8 @@ func desired() -> Dictionary:
 				pos = _shuttle.global_position + Vector3(0, 4, -7)
 				look_at = _shuttle.global_position
 			else:
-				pos = Vector3(0, 5.8, -9.2)
-				look_at = Vector3(0, 1, 2)
+				pos = Vector3(0, 2.2, -8.5)
+				look_at = Vector3(0, 1.4, 2.5)
 		CamPreset.SIDE:
 			pos = Vector3(10, 3, 0)
 			look_at = Vector3(0, 1, 0)
@@ -90,8 +95,8 @@ func desired() -> Dictionary:
 			pos = Vector3(0, 13, -2)
 			look_at = Vector3.ZERO
 		_:
-			pos = Vector3(0, 5.8, -9.2)
-			look_at = Vector3(0, 1, 2)
+			pos = Vector3(0, 2.2, -8.5)
+			look_at = Vector3(0, 1.4, 2.5)
 	return {"pos": pos, "look_at": look_at}
 
 ## Camera lift from shuttle height (BehindPlayer): 30% of the height
