@@ -77,6 +77,16 @@ namespace ShuttleLab.Editor
         public const string Cc0MaleModelPath = "Assets/Models/CC0/UBC_SuperheroMale.fbx";
         public const string Cc0FemaleModelPath = "Assets/Models/CC0/UBC_SuperheroFemale.fbx";
 
+        // Test PlayMode trên máy build cloud (batchmode, render phần mềm
+        // WARP) kẹt ở lúc load scene Match nặng (1008 khán giả + 6
+        // spotlight + bóng URP) — build #11/#12 treo đúng chỗ này 2 lần.
+        // Khi cờ này bật, BuildMatchScene dựng scene nhẹ cho test: bỏ
+        // khán giả + đèn arena, đèn directional làm đèn chính. Chỉ
+        // ScenePrebuildSetup bật cờ này; phase export thật chạy ở tiến
+        // trình Unity riêng nên cờ không rò sang bản APK.
+        // Mặc định false = scene đầy đủ.
+        public static bool BuildLightForTests = false;
+
         // --- Màu ------------------------------------------------------------
         private static readonly Color CourtGreen = new Color(0.12f, 0.45f, 0.25f);
         private static readonly Color FloorDark = new Color(0.05f, 0.08f, 0.14f);
@@ -236,16 +246,21 @@ namespace ShuttleLab.Editor
 
             BuildCourt();
             BuildStandsAndBoards();
-            BuildArenaLights();
-            BuildCrowd();
+            if (!BuildLightForTests)
+            {
+                BuildArenaLights();
+                BuildCrowd();
+            }
 
             // --- Đèn nền mờ (fill) ---
             // v0.2 phase 1: đèn chính là 6 spotlight trong BuildArenaLights.
             // Directional chỉ còn là fill rất mờ, màu xanh lạnh, không bóng.
+            // Scene nhẹ cho test (BuildLightForTests): không có spotlight
+            // nên directional làm đèn chính để sân vẫn nhìn được.
             var sun = new GameObject("DirectionalLight");
             var light = sun.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 0.1f;
+            light.intensity = BuildLightForTests ? 1.2f : 0.1f;
             light.color = new Color(0.55f, 0.65f, 0.85f);
             sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
 

@@ -11,10 +11,16 @@
 // batchmode trả exit code != 0 thay vì im lặng "thành công giả").
 //
 // QUYẾT ĐỊNH KỸ THUẬT v0.1.0:
-//  - Scripting backend Mono (không phải IL2CPP): máy build yếu (RAM 7.7 GB),
-//    IL2CPP biên dịch C++ lâu và tốn RAM, dễ fail giữa chừng; Mono build
-//    nhanh và đủ cho bản đầu. Đổi sang IL2CPP ở bản sau khi có máy mạnh hơn
-//    hoặc cần tối ưu hiệu năng / chống dịch ngược.
+//  - Scripting backend IL2CPP — BẮT BUỘC, không phải Mono. Đào ra
+//    2026-11-10 (ikdasm + kiểm tra đĩa): Unity 6000.0.64f1 chỉ ship Mono
+//    cho ARMv7 (Variations/mono/*/Libs chỉ có armeabi-v7a, KHÔNG có
+//    arm64-v8a; il2cpp thì có đủ arm64-v8a). Build pipeline lọc kiến trúc
+//    theo backend (FilteredTargetArchitectures) nên Mono + ARM64 bị lọc về
+//    0 → chết "Target architecture not specified" ở Checking prerequisites
+//    (4 lần build local chết y hệt dù setting ARM64 đã dính). ARMv7-only
+//    cũng vô dụng vì OnePlus 15 (Snapdragon 8 Elite Gen 5) là máy 64-bit
+//    only, không chạy code 32-bit. IL2CPP + ARM64 là tổ hợp duy nhất được.
+//    IL2CPP biên dịch C++ lâu và tốn RAM hơn — chấp nhận vì không còn lựa chọn.
 //  - Strip engine code KHÔNG bật (giữ an toàn bản đầu — tránh strip nhầm
 //    class dùng qua reflection / SendMessage như HUDManager.BindMatch).
 //  - Chỉ ARM64 (arm64-v8a), theo yêu cầu; target API 35, min API 24,
@@ -67,9 +73,31 @@ namespace ShuttleLab.Editor
         /// </summary>
         public static void BuildAndroid()
         {
+            // Chuyển active build target sang Android TRƯỚC mọi thứ:
+            // PlayerSettings.Android.* (đặc biệt targetArchitectures) chỉ
+            // có tác dụng khi Android đang là active target — build local
+            // 12:10 chết với "Target architecture not specified" dù
+            // ApplyPlayerSettings đã chạy và gán ARM64, vì lúc đó active
+            // target vẫn là Standalone (repo để PlayerSettings mặc định,
+            // cờ -buildTarget Android không tự chuyển target). Switch ở
+            // đây sẽ reimport asset cho Android (tốn vài phút) nhưng là
+            // bước bắt buộc để setting dính.
+            bool switched = EditorUserBuildSettings.SwitchActiveBuildTarget(
+                BuildTargetGroup.Android, BuildTarget.Android);
+            Debug.Log($"[BuildScript] SwitchActiveBuildTarget(Android) = {switched}, "
+                + $"active target giờ là {EditorUserBuildSettings.activeBuildTarget}.");
+
             // Dựng lại scene trước để APK không dùng scene cũ.
             SceneBuilder.BuildAllScenes();
             ApplyPlayerSettings();
+
+            // Kiểm chứng setting dính trước khi build (fail nhanh với
+            // thông báo rõ thay vì chết khó hiểu ở BuildPlayer).
+            if (PlayerSettings.Android.targetArchitectures == AndroidArchitecture.None)
+                throw new Exception("[BuildScript] targetArchitectures vẫn là None sau khi "
+                    + "gán ARM64 — không build được. Kiểm tra active build target.");
+            Debug.Log($"[BuildScript] targetArchitectures = {PlayerSettings.Android.targetArchitectures}.");
+            AssetDatabase.SaveAssets();
 
             string[] scenes = EditorBuildSettings.scenes
                 .Where(s => s.enabled)
@@ -85,7 +113,7 @@ namespace ShuttleLab.Editor
 
             Debug.Log($"[BuildScript] Bắt đầu build Android APK: {ApkPath}\n"
                 + $"  Scenes: {string.Join(", ", scenes)}\n"
-                + $"  Package: {PackageName} v{Version} (code {BundleVersionCode}), ARM64, Mono.");
+                + $"  Package: {PackageName} v{Version} (code {BundleVersionCode}), ARM64, IL2CPP.");
 
             var options = new BuildPlayerOptions
             {
@@ -142,9 +170,10 @@ namespace ShuttleLab.Editor
             PlayerSettings.bundleVersion = Version;
             PlayerSettings.Android.bundleVersionCode = BundleVersionCode;
 
-            // Mono cho bản đầu (xem ghi chú đầu file). IL2CPP để sau.
+            // IL2CPP bắt buộc (xem ghi chú đầu file): Mono trên Android của
+            // Unity 6 chỉ có ARMv7, không có ARM64.
             PlayerSettings.SetScriptingBackend(
-                BuildTargetGroup.Android, ScriptingImplementation.Mono2x);
+                BuildTargetGroup.Android, ScriptingImplementation.IL2CPP);
 
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24;
