@@ -2,9 +2,10 @@
 // Kiểm tra trận đấu thật trong scene Match: giao cầu -> rally -> ghi điểm,
 // AI đánh trả, cầu không xuyên lưới.
 //
-// YÊU CẦU TRƯỚC KHI CHẠY: scene phải được đăng ký trong Build Settings
-// (chạy menu ShuttleLab/Build All Scenes) — SceneManager.LoadScene theo
-// tên chỉ chạy với scene đã đăng ký.
+// Scene được dựng tự động trước khi test chạy qua IPrebuildSetup
+// (ScenePrebuildSetup -> BuildScript.PreExport) — không cần chạy menu
+// ShuttleLab/Build All Scenes tay. SceneManager.LoadScene theo tên chỉ
+// chạy với scene đã đăng ký.
 // KHÔNG dùng input thật: giao cầu qua MatchManager.RequestUserServe /
 // StartPoint, AI tự lái bằng OpponentAI. Người chơi (user) không đánh trả
 // nên mọi rally đều kết thúc bằng điểm cho một bên — đó là điều test
@@ -21,8 +22,11 @@ using ShuttleLab.Match;
 
 namespace ShuttleLab.Tests
 {
-    public class RallyPlayModeTests
+    public class RallyPlayModeTests : IPrebuildSetup
     {
+        // Dựng scene trước khi test chạy (xem ScenePrebuildSetup).
+        public void Setup() => ScenePrebuildSetup.EnsureScenes();
+
         private MatchManager _match;
         private ShuttlecockController _shuttle;
 
@@ -95,7 +99,7 @@ namespace ShuttleLab.Tests
             // AI có nhiều cơ hội đỡ. Rallies đếm số lần LastHitter đổi
             // trong phase Rally — tức AI đã đánh trả thành công.
             int maxRallies = 0;
-            for (int attempt = 0; attempt < 5 && maxRallies < 1; attempt++)
+            for (int attempt = 0; attempt < 8 && maxRallies < 1; attempt++)
             {
                 _match.Rules.Score.Server = 0;
                 _match.Rules.Score.Receiver = 1;

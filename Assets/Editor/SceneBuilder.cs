@@ -122,10 +122,22 @@ namespace ShuttleLab.Editor
         {
             var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(UrpAssetPath);
             // Repair an existing asset created by the old code (null renderer).
-            if (urp != null && urp.GetRenderer(0) == null)
+            // GetRenderer(0) có thể ném NullReferenceException khi asset cũ
+            // thiếu renderer (nó đọc m_RendererDataList[defaultIndex].name
+            // trên entry null) — bọc try/catch và coi như thiếu renderer.
+            bool rendererMissing = false;
+            try { rendererMissing = urp != null && urp.GetRenderer(0) == null; }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("[SceneBuilder] Không đọc được renderer của URP asset cũ ("
+                    + e.GetType().Name + ") — tạo lại.");
+                rendererMissing = true;
+            }
+            if (rendererMissing)
             {
                 Debug.LogWarning("[SceneBuilder] URP asset cũ thiếu renderer — tạo lại.");
                 AssetDatabase.DeleteAsset(UrpAssetPath);
+                AssetDatabase.DeleteAsset(UrpRendererPath);
                 urp = null;
             }
             if (urp == null)
@@ -939,6 +951,9 @@ namespace ShuttleLab.Editor
         {
             var go = new GameObject(name);
             var cam = go.AddComponent<UnityEngine.Camera>();
+            // Menu/Career cần AudioListener để nghe nhạc + tiếng click nút
+            // (Match dùng CameraRig riêng nên không trùng listener).
+            go.AddComponent<AudioListener>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = bg;
             cam.fieldOfView = 60f;

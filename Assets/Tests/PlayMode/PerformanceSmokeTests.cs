@@ -16,8 +16,11 @@ using UnityEngine.TestTools;
 
 namespace ShuttleLab.Tests
 {
-    public class PerformanceSmokeTests
+    public class PerformanceSmokeTests : IPrebuildSetup
     {
+        // Dựng scene trước khi test chạy (xem ScenePrebuildSetup).
+        public void Setup() => ScenePrebuildSetup.EnsureScenes();
+
         private const float MeasureSeconds = 5f;
         private const float MinAverageFps = 20f;
 

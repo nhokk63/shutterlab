@@ -83,6 +83,7 @@ namespace ShuttleLab.UI
         private EquipmentSlot _selectedSlot = EquipmentSlot.Racket;
         private string _selectedItemId;
         private Transform _shopListRoot;
+        private ScrollRect _shopScroll;
         private Text _shopDetailText;
         private Text _shopMoneyText;
         private Button _buyButton;
@@ -95,6 +96,12 @@ namespace ShuttleLab.UI
             {
                 var go = new GameObject("GameStateManager");
                 go.AddComponent<GameStateManager>();
+            }
+            // Như MainMenu: đảm bảo có AudioManager để nút có tiếng click.
+            if (!ShuttleLab.Systems.AudioManager.HasInstance)
+            {
+                var audioGO = new GameObject("AudioManager");
+                audioGO.AddComponent<ShuttleLab.Systems.AudioManager>();
             }
 
             _career = new CareerManager();
@@ -131,6 +138,11 @@ namespace ShuttleLab.UI
         public void OnStartCareerButton()
         {
             _career.StartNewCareer();
+            // Sự nghiệp mới = làm lại từ đầu: shop về 3 món khởi đầu,
+            // điểm cộng chỉ số từ điểm tập cũng xóa.
+            _equipment.ResetToStarters();
+            ShuttleLab.Systems.TrainingManager.ClearAllBonuses();
+            _selectedItemId = null;
             _tournament = new TournamentManager();
             Refresh();
         }
@@ -199,6 +211,7 @@ namespace ShuttleLab.UI
             _selectedSlot = slot;
             _selectedItemId = null;
             Refresh();
+            if (_shopScroll != null) _shopScroll.verticalNormalizedPosition = 1f;
         }
 
         public void OnShopItemButton(string itemId)
@@ -274,25 +287,35 @@ namespace ShuttleLab.UI
             if (_playTournamentButton != null)
                 _playTournamentButton.gameObject.SetActive(active);
 
+            // Dòng 2: giải đặc biệt tuần + tiến trình nhiệm vụ tuần.
+            var weeklyEvent = TournamentManager.GetWeeklyEvent();
+            string weeklyLine = $"\nGiải tuần: {weeklyEvent.Name} ({weeklyEvent.Tier})"
+                + $" • NV: thắng {WeeklyMissions.WinsProgress}/3"
+                + $" • smash {WeeklyMissions.SmashesProgress}/10"
+                + (WeeklyMissions.CleanWinDone ? " • thắng sạch: xong" : " • thắng sạch: chưa");
+
             if (_tournamentText != null)
             {
                 if (!active)
                 {
                     _tournamentText.text = "Bắt đầu sự nghiệp để chơi theo tuần: "
-                        + "3 tuần tập luyện, 1 tuần thi đấu, thăng hạng qua các cấp giải.";
+                        + "3 tuần tập luyện, 1 tuần thi đấu, thăng hạng qua các cấp giải."
+                        + weeklyLine;
                 }
                 else if (_career.IsTournamentWeek)
                 {
                     var info = _career.NextTournamentInfo;
                     _tournamentText.text = $"TUẦN GIẢI — {info.EventName} ({info.Tier})"
                         + $" • Vô địch: +{info.WinPoints} điểm, {info.PrizeMoney} xu"
-                        + $" • Còn {_career.WeeksUntilTournament} tuần tới giải sau.";
+                        + $" • Còn {_career.WeeksUntilTournament} tuần tới giải sau."
+                        + weeklyLine;
                 }
                 else
                 {
                     var info = _career.NextTournamentInfo;
                     _tournamentText.text = $"Tuần tập luyện — giải tới: {info.EventName} ({info.Tier})"
-                        + $" sau {_career.WeeksUntilTournament} tuần nữa.";
+                        + $" sau {_career.WeeksUntilTournament} tuần nữa."
+                        + weeklyLine;
                 }
             }
 
@@ -411,8 +434,13 @@ namespace ShuttleLab.UI
                         item.Name + state, 20, () => OnShopItemButton(id),
                         new Vector2(0f, 1f), new Vector2(0f, 1f),
                         new Vector2(300f, -30f - i * 52f), new Vector2(580f, 46f));
+                    var label = b.GetComponentInChildren<Text>();
+                    if (label != null) label.color = item.RarityColor();
                     UIBuilder.SetButtonSelected(b, item.Id == _selectedItemId);
                 }
+                // Nội dung cao theo số món để ScrollRect cuộn hết danh sách.
+                var contentRt = (RectTransform)_shopListRoot;
+                contentRt.sizeDelta = new Vector2(0f, 40f + items.Count * 52f);
             }
 
             if (_shopDetailText != null)
@@ -426,7 +454,7 @@ namespace ShuttleLab.UI
                 {
                     string owned = _equipment.IsOwned(item.Id) ? "Đã sở hữu" : "Chưa sở hữu";
                     string equipped = _equipment.IsEquipped(item.Id) ? " • Đang đeo" : "";
-                    _shopDetailText.text = $"{item.Name}\n{item.Description}\n"
+                    _shopDetailText.text = $"[{item.RarityName()}] {item.Name}\n{item.Description}\n"
                         + $"Chỉ số: {item.ModText()}\nGiá: {item.Price} xu • {owned}{equipped}";
                 }
             }
@@ -520,15 +548,15 @@ namespace ShuttleLab.UI
             _tournamentText = UIBuilder.CreateText(p, "TournamentText", "",
                 20, UIBuilder.TextDim, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -285f), new Vector2(1100f, 30f));
+                new Vector2(0f, -285f), new Vector2(1100f, 56f));
             _tournamentNoteText = UIBuilder.CreateText(p, "TournamentNoteText", "",
                 18, UIBuilder.AccentText, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -315f), new Vector2(1100f, 26f));
+                new Vector2(0f, -340f), new Vector2(1100f, 26f));
             _bracketText = UIBuilder.CreateText(p, "BracketText", "",
                 18, UIBuilder.TextWhite, TextAnchor.UpperLeft,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -440f), new Vector2(1100f, 200f));
+                new Vector2(0f, -455f), new Vector2(1100f, 200f));
             _onlineText = UIBuilder.CreateText(p, "OnlineText", "",
                 16, UIBuilder.TextDim, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
@@ -602,11 +630,31 @@ namespace ShuttleLab.UI
                     new Vector2(-320f + i * 320f, -225f), new Vector2(300f, 48f));
             }
 
-            _shopListRoot = new GameObject("ShopList", typeof(RectTransform)).transform;
-            _shopListRoot.SetParent(p, false);
-            UIBuilder.Place((RectTransform)_shopListRoot,
+            // Danh sách cuộn được: 25 vợt x 52px = 1300px, vượt xa khung
+            // 300px — không có ScrollRect thì các món Hiếm/Huyền thoại nằm
+            // ngoài màn hình, không mua được. Viewport cắt phần tràn bằng
+            // RectMask2D; nội dung cao theo số món (đặt lại ở RefreshShop).
+            var viewport = new GameObject("ShopViewport", typeof(RectTransform));
+            viewport.transform.SetParent(p, false);
+            UIBuilder.Place((RectTransform)viewport.transform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
                 new Vector2(-320f, -300f), new Vector2(600f, 300f));
+            viewport.AddComponent<RectMask2D>();
+            _shopScroll = viewport.AddComponent<ScrollRect>();
+            _shopScroll.horizontal = false;
+            _shopScroll.vertical = true;
+            _shopScroll.movementType = ScrollRect.MovementType.Clamped;
+            _shopScroll.inertia = false;
+
+            _shopListRoot = new GameObject("ShopList", typeof(RectTransform)).transform;
+            _shopListRoot.SetParent(viewport.transform, false);
+            var contentRt = (RectTransform)_shopListRoot;
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.anchoredPosition = Vector2.zero;
+            contentRt.sizeDelta = new Vector2(0f, 300f);
+            _shopScroll.content = contentRt;
 
             _shopDetailText = UIBuilder.CreateText(p, "ShopDetailText", "",
                 20, UIBuilder.TextWhite, TextAnchor.UpperLeft,

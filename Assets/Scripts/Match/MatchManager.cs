@@ -35,6 +35,7 @@ using ShuttleLab.Core;
 using ShuttleLab.Gameplay;
 using ShuttleLab.Input;
 using ShuttleLab.Players;
+using ShuttleLab.Systems;
 
 namespace ShuttleLab.Match
 {
@@ -42,7 +43,8 @@ namespace ShuttleLab.Match
     public class MatchStats
     {
         public int Rallies;       // tổng số cú đánh qua lại trong các rally
-        public int Smashes;       // số cú Smash / JumpSmash đã thực hiện
+        public int Smashes;       // số cú Smash / JumpSmash đã thực hiện (cả 2 bên)
+        public int UserSmashes;   // số cú Smash / JumpSmash của USER (nhiệm vụ tuần)
         public int Errors;        // điểm thua do lỗi của người đánh cuối
         public int ShotsHit;      // tổng cú đánh + giao cầu đã thực hiện
         public int ShotsGood;     // cú đánh đối thủ đỡ được hoặc ghi điểm
@@ -428,7 +430,46 @@ namespace ShuttleLab.Match
                 Players[1 - winner].PlayDisappointed();
             }
             OnMessage?.Invoke(winner == 0 ? "Bạn thắng trận!" : "Đối thủ thắng trận!");
+            GrantMatchRewards(winner);
             OnMatchEnd?.Invoke(winner);
+        }
+
+        /// <summary>
+        /// Thưởng kinh tế cuối trận (chạy TRƯỚC OnMatchEnd để HUD ghi kết
+        /// quả giải sau không bị tính trùng). Trận tập không tính. Trận
+        /// giải đấu không nhận thưởng Quick Match (đã có tiền thưởng giải
+        /// qua RecordTournamentResult ở HUDManager.OnMatchEnd). Nhiệm vụ
+        /// tuần tính cho mọi trận thật (Quick Match + giải đấu).
+        /// Không có career đang Active thì không thưởng gì (tiền sống
+        /// trong Career).
+        /// </summary>
+        private void GrantMatchRewards(int winner)
+        {
+            if (IsPractice) return;
+            var session = TournamentSession.Instance;
+            if (session == null) return;
+            var career = session.Career;
+            if (career == null || !career.Active) return;
+
+            bool won = winner == 0;
+            // Trận giải = bracket đang active HOẶC chế độ nạp trận là
+            // Tournament (CurrentMode giữ nguyên cả khi bấm Đấu lại, nên
+            // trận giải đấu lại vẫn không nhận thưởng Quick Match).
+            bool isTournamentMatch = (session.Tournament != null
+                && session.Tournament.IsActive)
+                || (ShuttleLab.Core.GameStateManager.Instance != null
+                    && ShuttleLab.Core.GameStateManager.Instance.CurrentMode
+                        == ShuttleLab.Core.GameStateManager.AppMode.Tournament);
+            if (!isTournamentMatch)
+                career.AddMoney(won ? 50 : 10);
+
+            // Ván user thua = số ván đối thủ thắng (Games[1]); smash chỉ
+            // tính của USER (Stats.UserSmashes) — AI đập không tính vào
+            // nhiệm vụ tuần của người chơi.
+            int gamesLost = Rules != null && Rules.Score != null
+                ? Rules.Score.Games[1] : 0;
+            int smashes = Stats != null ? Stats.UserSmashes : 0;
+            WeeklyMissions.RecordMatch(won, smashes, gamesLost, career);
         }
 
         // --- Input callbacks -------------------------------------------------
@@ -508,22 +549,28 @@ namespace ShuttleLab.Match
 
         /// <summary>Đếm smash qua ShotController.OnShotExecuted — chỉ đếm khi
         /// cầu thật sự được launch (sau fallback), không đếm vung hụt hay
-        /// solver fail như cách đếm ở TryHit/NotifyShotHit trước đây.</summary>
+        /// solver fail như cách đếm ở TryHit/NotifyShotHit trước đây.
+        /// Đăng ký riêng từng người chơi để biết cú smash của ai: Stats
+        /// đếm cả hai bên (hiển thị), UserSmashes chỉ đếm user (nhiệm vụ).</summary>
         private void SubscribeShotExecuted()
         {
             if (_shotsSubscribed || Players == null || Players.Length < 2) return;
             foreach (var p in Players)
             {
                 if (p != null && p.ShotCtrl != null)
-                    p.ShotCtrl.OnShotExecuted += OnShotExecuted;
+                {
+                    int idx = p.PlayerIndex;
+                    p.ShotCtrl.OnShotExecuted += (type, quality) => OnShotExecutedFor(idx, type, quality);
+                }
             }
             _shotsSubscribed = true;
         }
 
-        private void OnShotExecuted(ShotType type, ShotQuality quality)
+        private void OnShotExecutedFor(int hitter, ShotType type, ShotQuality quality)
         {
-            if (type == ShotType.Smash || type == ShotType.JumpSmash)
-                Stats.Smashes++;
+            if (type != ShotType.Smash && type != ShotType.JumpSmash) return;
+            Stats.Smashes++;
+            if (hitter == 0) Stats.UserSmashes++;
         }
 
         private static string FaultText(MatchRules.FaultReason fault)

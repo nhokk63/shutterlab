@@ -75,20 +75,43 @@ namespace ShuttleLab.Core
             int difficulty = gs != null ? gs.Difficulty : 2;
             bool practice = gs != null && gs.CurrentMode == GameStateManager.AppMode.Practice;
 
-            // User: DefaultPlayer, tay phải/trái theo setting sẽ áp sau qua stats.
-            PlayerStats userStats = PlayerStats.DefaultPlayer();
+            // User: nhân vật đã chọn trong roster (mặc định id 0, kit áo đỏ /
+            // quần tối theo refs Pure Badminton). Tên gõ trong menu chỉ thắng
+            // khi khác mặc định "Bạn" — nếu không, giữ tên nhân vật trong
+            // roster. SceneBuilder không đặt được kit vì humanoid được Build
+            // trong PlayerController.Init lúc chạy; kit nằm trong roster,
+            // không ghi đè màu áo/quần tại đây nữa.
+            PlayerStats userStats = PlayerStats.FromCharacter(ShuttleLab.Systems.CharacterRoster.SelectedId);
             if (gs != null)
             {
-                userStats.Name = gs.PlayerName;
-                userStats.LeftHanded = gs.LeftHandMode;
+                if (!string.IsNullOrEmpty(gs.PlayerName) && gs.PlayerName != "Bạn")
+                    userStats.Name = gs.PlayerName;
+                // KHÔNG ghi đè LeftHanded bằng gs.LeftHandMode: đó là cài
+                // đặt ĐIỀU KHIỂN (đảo tay cầm joystick/nút), còn tay thuận
+                // là thuộc tính của nhân vật trong roster (Đức Anh tay trái).
             }
-            // Kit theo refs (Pure Badminton press kit, chỉ tham khảo màu):
-            // user áo đỏ / quần tối, AI áo trắng / quần xanh. DefaultPlayer
-            // cho áo xanh và FromDifficulty cho áo đỏ — ngược với refs — nên
-            // ghi đè tại đây. SceneBuilder không đặt được kit vì humanoid
-            // được Build trong PlayerController.Init lúc chạy.
-            userStats.ShirtColor = new Color(0.75f, 0.15f, 0.15f); // đỏ
-            userStats.ShortsColor = new Color(0.08f, 0.08f, 0.10f); // tối
+            // Điểm tập đổi chỉ số (10 điểm = +1, tối đa +10 cộng dồn).
+            // Cộng vào chỉ số gốc TRƯỚC khi áp trang bị.
+            foreach (ShuttleLab.Systems.TrainingManager.TrainableStat stat
+                in System.Enum.GetValues(typeof(ShuttleLab.Systems.TrainingManager.TrainableStat)))
+            {
+                int bonus = ShuttleLab.Systems.TrainingManager.GetStatBonus(stat);
+                if (bonus <= 0) continue;
+                switch (stat)
+                {
+                    case ShuttleLab.Systems.TrainingManager.TrainableStat.Power:
+                        userStats.Power += bonus; break;
+                    case ShuttleLab.Systems.TrainingManager.TrainableStat.Accuracy:
+                        userStats.Accuracy += bonus; break;
+                    case ShuttleLab.Systems.TrainingManager.TrainableStat.Speed:
+                        userStats.Speed += bonus; break;
+                    case ShuttleLab.Systems.TrainingManager.TrainableStat.Stamina:
+                        userStats.Stamina += bonus; break;
+                    case ShuttleLab.Systems.TrainingManager.TrainableStat.Defense:
+                        userStats.Defense += bonus; break;
+                }
+            }
+            userStats.ClampAll();
             // Trang bị đã mua: áp chỉ số trước khi Init người chơi.
             var equipment = new ShuttleLab.Systems.EquipmentManager();
             equipment.LoadFromSave(ShuttleLab.Systems.SaveManager.Current);
@@ -125,6 +148,13 @@ namespace ShuttleLab.Core
             // HUD (nếu đã có trong scene): nối kiểu typed trực tiếp.
             FindFirstObjectByType<HUDManager>()?.BindMatch(_match);
 
+            // Quick Match cũng phải có ví Career để nhận thưởng cuối trận:
+            // không đi qua màn Career nên tự tạo/nạp session tại đây.
+            // Trận tập không tạo career. Session giải đấu đang chạy (Career
+            // đã có) thì giữ nguyên, không đụng vào.
+            if (!practice)
+                EnsureCareerSession();
+
             _match.StartMatch(difficulty, practice);
 
             // Âm thanh: nối AudioManager vào event của trận (trước đây
@@ -136,6 +166,8 @@ namespace ShuttleLab.Core
                 _match.OnMessage += _ => audio.PlayWhistle();
                 _match.Players[0].ShotCtrl.OnShotExecuted += (type, _) => audio.PlayHit(type);
                 _match.Players[1].ShotCtrl.OnShotExecuted += (type, _) => audio.PlayHit(type);
+                if (_shuttle != null)
+                    _shuttle.OnLanded += (landing, inSingles, inDoubles) => audio.PlayBounce();
             }
         }
 
@@ -159,6 +191,37 @@ namespace ShuttleLab.Core
                 if (_match.Players[1] == null && found.Length > 1)
                     _match.Players[1] = found[1];
             }
+        }
+
+        /// <summary>
+        /// Đảm bảo có Career đang Active để thưởng xu cuối trận (Quick Match
+        /// không đi qua màn Career nên phải tự tạo/nạp tại đây). Chưa có
+        /// career trong save thì bắt đầu sự nghiệp mới (500 xu khởi đầu).
+        /// </summary>
+        private void EnsureCareerSession()
+        {
+            var session = ShuttleLab.Systems.TournamentSession.Instance;
+            if (session == null)
+            {
+                var go = new GameObject("TournamentSession");
+                session = go.AddComponent<ShuttleLab.Systems.TournamentSession>();
+            }
+            if (session.Career == null)
+            {
+                var career = new ShuttleLab.Systems.CareerManager();
+                career.LoadFromSave(ShuttleLab.Systems.SaveManager.Current);
+                session.Career = career;
+            }
+            else
+            {
+                // Nạp lại từ save: tiền trong session có thể cũ hơn save
+                // (mở khóa nhân vật ở menu / mua đồ ở Career ghi thẳng vào
+                // save qua CareerManager mới). Không nạp lại thì lần AddMoney
+                // sau trận sẽ ghi đè save bằng số tiền cũ, hoàn tiền đã tiêu.
+                session.Career.LoadFromSave(ShuttleLab.Systems.SaveManager.Current);
+            }
+            if (!session.Career.Active)
+                session.Career.StartNewCareer();
         }
 
         // --- Nút UI (gán qua Inspector/UnityEvent) ---------------------------

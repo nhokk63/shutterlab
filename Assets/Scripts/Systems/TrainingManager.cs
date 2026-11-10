@@ -14,6 +14,7 @@
 // Phụ thuộc: ShuttleLab.Systems (SaveManager). Không phụ thuộc Match/UI.
 
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ShuttleLab.Systems
 {
@@ -225,5 +226,64 @@ namespace ShuttleLab.Systems
             }
             return SaveManager.RecordTrainingBest(drillId, score);
         }
+
+        // --- Đổi điểm tập lấy chỉ số (PROGRESSION_SPEC mục 4) --------------
+
+        /// <summary>Chỉ số có thể tăng bằng điểm tập (khớp tên field PlayerStats).</summary>
+        public enum TrainableStat
+        {
+            Power,
+            Speed,
+            Stamina,
+            Accuracy,
+            Defense,
+        }
+
+        public const int PointsPerBonus = 10; // 10 điểm tập = +1 chỉ số
+        public const int MaxTotalBonus = 10;  // tối đa +10 chỉ số cộng dồn
+
+        /// <summary>
+        /// Đổi 10 điểm tập lấy +1 chỉ số tự chọn (tối đa +10 cộng dồn mọi
+        /// chỉ số). Trả false nếu chưa đủ điểm, đã chạm cap, hoặc career
+        /// không Active. Không có UI — UI sau này gọi method này.
+        /// Điểm cộng lưu trong PlayerPrefs (khóa shuttlelab_tp_bonus_*);
+        /// áp vào PlayerStats lúc bắt đầu trận ở GameBootstrap.Start
+        /// (cộng vào chỉ số gốc trước khi áp trang bị).
+        /// </summary>
+        public static bool ConvertPoints(TrainableStat stat, CareerManager career)
+        {
+            if (career == null || !career.Active) return false;
+            if (TotalBonus() >= MaxTotalBonus) return false;
+            if (!career.SpendTrainingPoints(PointsPerBonus)) return false;
+            string key = BonusKey(stat);
+            PlayerPrefs.SetInt(key, PlayerPrefs.GetInt(key, 0) + 1);
+            PlayerPrefs.Save();
+            return true;
+        }
+
+        /// <summary>Điểm cộng đã mua cho một chỉ số (0 nếu chưa mua).</summary>
+        public static int GetStatBonus(TrainableStat stat) =>
+            PlayerPrefs.GetInt(BonusKey(stat), 0);
+
+        /// <summary>Tổng điểm cộng đã mua mọi chỉ số (cap MaxTotalBonus).</summary>
+        public static int TotalBonus()
+        {
+            int total = 0;
+            foreach (TrainableStat stat in System.Enum.GetValues(typeof(TrainableStat)))
+                total += GetStatBonus(stat);
+            return total;
+        }
+
+        /// <summary>Xóa hết điểm cộng chỉ số đã đổi — dùng khi bắt đầu sự
+        /// nghiệp mới, để bonus cũ không theo sang sự nghiệp mới.</summary>
+        public static void ClearAllBonuses()
+        {
+            foreach (TrainableStat stat in System.Enum.GetValues(typeof(TrainableStat)))
+                PlayerPrefs.DeleteKey(BonusKey(stat));
+            PlayerPrefs.Save();
+        }
+
+        private static string BonusKey(TrainableStat stat) =>
+            "shuttlelab_tp_bonus_" + stat.ToString().ToLowerInvariant();
     }
 }

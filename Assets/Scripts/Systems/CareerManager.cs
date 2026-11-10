@@ -19,8 +19,10 @@
 //
 // RÚT GỌN v0.1.0:
 //  - Không có mùa giải (52 tuần rồi reset) — tuần cứ tăng, ghi chú sau.
-//  - Điểm tập luyện (TrainingPoints) chỉ là số tích lũy hiển thị; chưa
-//    đổi thành tăng chỉ số vì chưa có luồng chơi bài tập thật để chấm.
+//  - Điểm tập luyện (TrainingPoints) đổi được thành +chỉ số qua
+//    TrainingManager.ConvertPoints (10 điểm = +1, cap +10 cộng dồn).
+//    Chưa có luồng chơi bài tập thật để chấm nên điểm chủ yếu vẫn đến
+//    từ trợ cấp tuần (+2/tuần tập).
 //  - Tiền thưởng chỉ là tiền ảo trong Career, không mua được gì ngoài
 //    cửa hàng trang bị (EquipmentManager).
 //
@@ -231,6 +233,19 @@ namespace ShuttleLab.Systems
             if (points <= 0) return;
             TrainingPoints += points;
             WriteToSave();
+        }
+
+        /// <summary>
+        /// Trừ điểm tập luyện (đổi điểm lấy +chỉ số qua TrainingManager).
+        /// Trả false nếu không đủ điểm.
+        /// </summary>
+        public bool SpendTrainingPoints(int points)
+        {
+            if (points <= 0) points = 0;
+            if (TrainingPoints < points) return false;
+            TrainingPoints -= points;
+            WriteToSave();
+            return true;
         }
 
         public string SummaryLine() =>

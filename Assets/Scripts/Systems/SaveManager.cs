@@ -61,6 +61,19 @@ namespace ShuttleLab.Systems
         public int TournamentsPlayed = 0;
     }
 
+    /// <summary>Tiến trình nhiệm vụ tuần (WeeklyMissions là chủ sở hữu logic).</summary>
+    [Serializable]
+    public class MissionSaveData
+    {
+        public string WeekKey = "";
+        public int Wins = 0;
+        public int Smashes = 0;
+        public bool CleanWinDone = false;
+        public bool WinsRewarded = false;
+        public bool SmashesRewarded = false;
+        public bool CleanWinRewarded = false;
+    }
+
     /// <summary>Toàn bộ dữ liệu lưu của game (version 1).</summary>
     [Serializable]
     public class SaveData
@@ -76,6 +89,7 @@ namespace ShuttleLab.Systems
         public bool LeftHandMode = false;
 
         public CareerSaveData Career = new CareerSaveData();
+        public MissionSaveData Missions = new MissionSaveData();
         public List<string> OwnedEquipmentIds = new List<string>();
         public List<EquippedEntry> Equipped = new List<EquippedEntry>();
         public List<TrainingBestEntry> TrainingBests = new List<TrainingBestEntry>();
@@ -136,6 +150,7 @@ namespace ShuttleLab.Systems
                 if (data == null) return null;
                 // Bảo vệ khỏi JSON thiếu trường (JsonUtility để null).
                 if (data.Career == null) data.Career = new CareerSaveData();
+                if (data.Missions == null) data.Missions = new MissionSaveData();
                 if (data.OwnedEquipmentIds == null) data.OwnedEquipmentIds = new List<string>();
                 if (data.Equipped == null) data.Equipped = new List<EquippedEntry>();
                 if (data.TrainingBests == null) data.TrainingBests = new List<TrainingBestEntry>();

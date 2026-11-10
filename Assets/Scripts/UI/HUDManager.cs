@@ -190,11 +190,13 @@ namespace ShuttleLab.UI
                 _match.Rules != null ? _match.Rules.Score : null,
                 _match.Stats, userName, aiName);
             // Ghi kết quả vào bracket giải (nếu trận này thuộc tuần giải).
+            // Chỉ thưởng khi ReportPlayerMatch ghi nhận MỚI (trả true) —
+            // nút Đấu lại sau trận giải không được thưởng lần nữa.
             var session = ShuttleLab.Systems.TournamentSession.Instance;
             if (session != null && session.Tournament != null && session.Tournament.IsActive)
             {
-                session.Tournament.ReportPlayerMatch(won: winner == 0);
-                if (session.Career != null)
+                bool recorded = session.Tournament.ReportPlayerMatch(won: winner == 0);
+                if (recorded && session.Career != null)
                     session.Career.RecordTournamentResult(session.Tournament.PlayerPlacement,
                         session.Career.CurrentTier, session.Tournament.PlayerMatchesWon,
                         session.Tournament.PlayerMatchesLost);

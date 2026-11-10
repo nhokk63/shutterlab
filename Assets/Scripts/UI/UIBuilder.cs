@@ -143,6 +143,13 @@ namespace ShuttleLab.UI
                 Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             labelText.raycastTarget = false;
 
+            // Tiếng click cho mọi nút (AudioManager tồn tại thì phát,
+            // không thì thôi — nút vẫn bấm được bình thường).
+            button.onClick.AddListener(() =>
+            {
+                if (ShuttleLab.Systems.AudioManager.HasInstance)
+                    ShuttleLab.Systems.AudioManager.Instance.PlayClick();
+            });
             if (onClick != null) button.onClick.AddListener(onClick);
             return button;
         }

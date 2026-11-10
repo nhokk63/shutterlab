@@ -79,6 +79,32 @@ namespace ShuttleLab.Players
         }
 
         /// <summary>
+        /// Stats của nhân vật trong roster (CharacterRoster). Id 0 = nhân
+        /// vật mặc định (tương đương DefaultPlayer nhưng tên/kit từ roster);
+        /// id lạ -> nhân vật mặc định.
+        /// </summary>
+        public static PlayerStats FromCharacter(int id)
+        {
+            var entry = ShuttleLab.Systems.CharacterRoster.Get(id);
+            return new PlayerStats
+            {
+                Name = entry.Name,
+                Country = entry.Country,
+                LeftHanded = entry.LeftHanded,
+                Power = entry.Power,
+                Accuracy = entry.Accuracy,
+                Speed = entry.Speed,
+                Stamina = entry.Stamina,
+                Defense = entry.Defense,
+                ShirtColor = entry.ShirtColor,
+                ShortsColor = entry.ShortsColor,
+                ShoeColor = entry.ShoeColor,
+                SkinColor = entry.SkinColor,
+                HairColor = entry.HairColor,
+            };
+        }
+
+        /// <summary>
         /// AI stats for a difficulty level 0..5:
         /// 0 Beginner ~35, 1 Amateur ~50, 2 Intermediate ~62,
         /// 3 Advanced ~74, 4 Pro ~84, 5 Legend ~92.

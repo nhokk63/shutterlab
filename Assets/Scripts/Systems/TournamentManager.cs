@@ -269,12 +269,17 @@ namespace ShuttleLab.Systems
         /// won=true: user đi tiếp (vô địch nếu đây là chung kết).
         /// won=false: user bị loại. Sau khi báo xong, nếu mọi trận của vòng
         /// đã xong thì tự sang vòng sau.
+        /// Trả về true chỉ khi ghi NHẬN MỚI một kết quả (trận chưa đấu);
+        /// false khi giải không active hoặc trận đã ghi rồi — để HUD chỉ
+        /// thưởng tiền/hạng/danh hiệu một lần, chống farm bằng nút Đấu lại.
+        /// Khi giải khép (vô địch hoặc bị loại) thì IsActive=false để các
+        /// trận Quick Match sau không bị nhận nhầm là trận giải nữa.
         /// </summary>
-        public void ReportPlayerMatch(bool won)
+        public bool ReportPlayerMatch(bool won)
         {
-            if (!IsActive) return;
+            if (!IsActive) return false;
             var match = PlayerMatch();
-            if (match == null || match.Played) return;
+            if (match == null || match.Played) return false;
 
             if (won)
             {
@@ -283,7 +288,8 @@ namespace ShuttleLab.Systems
                 if (CurrentRound == TournamentRound.Final)
                 {
                     CurrentRound = TournamentRound.Champion;
-                    return;
+                    IsActive = false;
+                    return true;
                 }
             }
             else
@@ -292,11 +298,13 @@ namespace ShuttleLab.Systems
                 PlayerMatchesLost++;
                 _playerBestRound = CurrentRound; // thua ở vòng này
                 CurrentRound = TournamentRound.Eliminated;
-                return;
+                IsActive = false;
+                return true;
             }
 
             _playerBestRound = CurrentRound; // thắng vòng này -> đã tới vòng này
             TryAdvanceRound();
+            return true;
         }
 
         private void TryAdvanceRound()
@@ -335,6 +343,49 @@ namespace ShuttleLab.Systems
                 lines.Add($"{m.A.Name} (hạt giống {m.A.Seed}) vs {m.B.Name} (hạt giống {m.B.Seed}){result}{tag}");
             }
             return lines;
+        }
+
+        // --- Giải đặc biệt theo tuần (PROGRESSION_SPEC mục 3, chỉ dữ liệu) --
+
+        /// <summary>Giải đặc biệt của một tuần: tên hư cấu + cấp + seed tuần.</summary>
+        public struct WeeklyEvent
+        {
+            public string Name;
+            public TournamentTier Tier;
+            public int WeekSeed;
+        }
+
+        // Tên giải HƯ CẤU, xoay theo tuần (không dùng tên giải BWF thật).
+        private static readonly string[] WeeklyEventNames =
+        {
+            "Cúp Ánh Sao",
+            "Giải Mở Rộng Mùa Thu",
+            "Cúp Tốc Độ",
+            "Giải Thăng Hạng",
+            "Cúp Đêm Hội",
+        };
+
+        /// <summary>
+        /// Event đặc biệt của tuần hiện tại (chỉ dữ liệu — chưa nối vào
+        /// bracket/UI). Seed = số tuần ISO (cùng chuẩn với WeeklyMissions):
+        /// tên xoay mỗi tuần, cấp xoay mỗi 5 tuần.
+        /// </summary>
+        public static WeeklyEvent GetWeeklyEvent()
+        {
+            int seed = WeeklyMissions.CurrentWeekNumber();
+            return GetWeeklyEventForSeed(seed);
+        }
+
+        /// <summary>Cùng logic GetWeeklyEvent nhưng nhận seed trực tiếp (để test).</summary>
+        public static WeeklyEvent GetWeeklyEventForSeed(int seed)
+        {
+            int s = seed < 0 ? 0 : seed;
+            return new WeeklyEvent
+            {
+                Name = WeeklyEventNames[s % WeeklyEventNames.Length],
+                Tier = (TournamentTier)((s / WeeklyEventNames.Length) % 5),
+                WeekSeed = s,
+            };
         }
     }
 }
