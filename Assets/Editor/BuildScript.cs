@@ -26,8 +26,10 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace ShuttleLab.Editor
 {
@@ -149,8 +151,8 @@ namespace ShuttleLab.Editor
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel35;
 
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
-            PlayerSettings.allowedOrientations =
-                UIOrientation.LandscapeLeft | UIOrientation.LandscapeRight;
+            // PlayerSettings không có allowedOrientations — khóa ngang bằng
+            // defaultInterfaceOrientation ở trên là đủ.
 
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
             PlayerSettings.SetGraphicsAPIs(
