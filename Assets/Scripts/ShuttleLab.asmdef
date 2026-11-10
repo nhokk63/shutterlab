@@ -1,1 +1,1 @@
-{"allowUnsafeCode":false,"autoReferenced":true,"defineConstraints":[],"excludePlatforms":[],"includePlatforms":[],"name":"ShuttleLab","noEngineReferences":false,"overrideReferences":false,"precompiledReferences":[],"references":[],"versionDefines":[]}
+{"allowUnsafeCode":false,"autoReferenced":true,"defineConstraints":[],"excludePlatforms":[],"includePlatforms":[],"name":"ShuttleLab","noEngineReferences":false,"overrideReferences":false,"precompiledReferences":[],"references":["Unity.RenderPipelines.Universal.Runtime"],"versionDefines":[]}
