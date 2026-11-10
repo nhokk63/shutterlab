@@ -165,6 +165,8 @@ namespace ShuttleLab.Input
         /// LeftHandMode: hoán đổi vị trí ngang của panel joystick và panel
         /// nút kỹ thuật (đổi anchor/anchoredPosition cho nhau). Panel nào
         /// chưa gán thì thử tìm theo tên GameObject; không tìm thấy thì thôi.
+        /// Đây là chủ duy nhất của bố cục tay trái — đừng gọi thêm
+        /// VirtualJoystick.SetLeftHand (đã xóa) kẻo joystick bị dời 2 lần.
         /// </summary>
         public void ApplyLeftHandMode(bool left)
         {

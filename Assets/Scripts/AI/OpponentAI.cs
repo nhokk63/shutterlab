@@ -137,7 +137,7 @@ namespace ShuttleLab.AI
             if (_perception.TryPredict(out Vector3 landing, out float timeToLand))
             {
                 _perception.ObserverPosition = _ai.transform.position;
-                if (landing.z < 0.3f)
+                if (landing.z < 0f)
                 {
                     // Landing on the opponent's side (fault / net cord):
                     // do not chase across the net, recover home instead.
@@ -151,7 +151,7 @@ namespace ShuttleLab.AI
                 // No prediction (rare): chase the shuttle's current spot,
                 // clamped to our own half.
                 target = shuttlePos;
-                target.z = Mathf.Max(target.z, 0.3f);
+                target.z = Mathf.Max(target.z, 0.05f);
                 target.y = 0f;
             }
 
@@ -176,6 +176,10 @@ namespace ShuttleLab.AI
             // TryHit true = a swing was executed (including a whiff).
             // The shuttle itself is launched later, from the animation's
             // onContact callback inside PlayerController.
+            // Only swing when close enough: at the edge of reach (0.99–1.15 m)
+            // TryHit almost always whiffs (EvaluateQuality -> Miss) and the
+            // swing lock (~0.5–0.75 s) wastes the chance to return the serve.
+            if (Vector3.Distance(_ai.transform.position, shuttlePos) > 0.95f) return;
             if (_ai.TryHit(type, shotTarget))
                 _match.NotifyShotHit(AiIndex, type);
         }

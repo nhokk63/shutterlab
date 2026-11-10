@@ -7,11 +7,8 @@
 // LƯU Ý:
 // - Dùng FindFirstObjectByType (API Unity 6) thay cho FindObjectOfType đã
 //   obsolete, cùng ý nghĩa.
-// - HUDManager chưa tồn tại lúc viết file này nên KHÔNG tham chiếu kiểu
-//   HUDManager trực tiếp (sẽ vỡ biên dịch nếu UI agent chưa giao file).
-//   Thay vào đó: tìm GameObject tên "HUDManager" và SendMessage("BindMatch")
-//   nếu có; cách nối chính là HUD tự tìm MatchManager và đăng ký các event
-//   OnScoreChanged / OnMessage / OnMatchEnd của nó.
+// - HUDManager nối kiểu typed trực tiếp qua FindFirstObjectByType
+//   (trước đây dùng GameObject.Find + SendMessage vì file HUD chưa có).
 // - OpponentAI (2026-11-09, AI module): được AddComponent lên GameObject
 //   của AI player (index 1) + Init với difficulty từ GameStateManager,
 //   trước khi StartMatch chạy. AI KHÔNG tự giao cầu — MatchManager đã
@@ -26,6 +23,7 @@ using ShuttleLab.Gameplay;
 using ShuttleLab.Input;
 using ShuttleLab.Match;
 using ShuttleLab.Players;
+using ShuttleLab.UI;
 
 namespace ShuttleLab.Core
 {
@@ -61,6 +59,7 @@ namespace ShuttleLab.Core
 
             if (_shuttle != null && _match.Shuttle == null)
                 _match.Shuttle = _shuttle;
+            _shuttle = _match.Shuttle;
 
             EnsurePlayers();
 
@@ -90,6 +89,10 @@ namespace ShuttleLab.Core
             // được Build trong PlayerController.Init lúc chạy.
             userStats.ShirtColor = new Color(0.75f, 0.15f, 0.15f); // đỏ
             userStats.ShortsColor = new Color(0.08f, 0.08f, 0.10f); // tối
+            // Trang bị đã mua: áp chỉ số trước khi Init người chơi.
+            var equipment = new ShuttleLab.Systems.EquipmentManager();
+            equipment.LoadFromSave(ShuttleLab.Systems.SaveManager.Current);
+            userStats = equipment.ApplyTo(userStats) ?? userStats;
             PlayerStats aiStats = PlayerStats.FromDifficulty(difficulty);
             aiStats.Name = PlayerStats.DifficultyName(difficulty);
             aiStats.ShirtColor = new Color(0.92f, 0.92f, 0.95f);   // trắng
@@ -114,18 +117,26 @@ namespace ShuttleLab.Core
 
             if (_camera != null)
             {
-                _camera.SetTargets(_shuttle.transform,
-                    _match.Players[0].transform, _match.Players[1].transform);
+                _camera.SetTargets(_shuttle.transform);
                 int preset = gs != null ? gs.CameraPreset : 0;
                 _camera.SetPreset((CameraManager.CamPreset)Mathf.Clamp(preset, 0, 5));
             }
 
-            // HUD (nếu đã có trong scene): nối kiểu không phụ thuộc type.
-            GameObject hudGO = GameObject.Find("HUDManager");
-            if (hudGO != null)
-                hudGO.SendMessage("BindMatch", _match, SendMessageOptions.DontRequireReceiver);
+            // HUD (nếu đã có trong scene): nối kiểu typed trực tiếp.
+            FindFirstObjectByType<HUDManager>()?.BindMatch(_match);
 
             _match.StartMatch(difficulty, practice);
+
+            // Âm thanh: nối AudioManager vào event của trận (trước đây
+            // AudioManager build xong nhưng không ai gọi nên game câm).
+            var audio = FindFirstObjectByType<ShuttleLab.Systems.AudioManager>();
+            if (audio != null)
+            {
+                _match.OnScoreChanged += _ => audio.PlayScore();
+                _match.OnMessage += _ => audio.PlayWhistle();
+                _match.Players[0].ShotCtrl.OnShotExecuted += (type, _) => audio.PlayHit(type);
+                _match.Players[1].ShotCtrl.OnShotExecuted += (type, _) => audio.PlayHit(type);
+            }
         }
 
         /// <summary>

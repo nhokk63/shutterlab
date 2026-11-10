@@ -29,8 +29,6 @@ namespace ShuttleLab.Camera
         public float FollowSpeed = 5f;
 
         private Transform _shuttle;
-        private Transform _player;
-        private Transform _opponent;
 
         private UnityEngine.Camera _cam;
         private bool _positioned;
@@ -39,6 +37,11 @@ namespace ShuttleLab.Camera
         {
             _cam = GetComponent<UnityEngine.Camera>();
             if (_cam == null) _cam = UnityEngine.Camera.main;
+            if (_cam == null)
+            {
+                Debug.LogError("[CameraManager] Không có Camera trên cùng GameObject và không có MainCamera.");
+                enabled = false;
+            }
         }
 
         private void Start()
@@ -55,11 +58,9 @@ namespace ShuttleLab.Camera
             CurrentPreset = preset;
         }
 
-        public void SetTargets(Transform shuttle, Transform player, Transform opponent)
+        public void SetTargets(Transform shuttle)
         {
             _shuttle = shuttle;
-            _player = player;
-            _opponent = opponent;
         }
 
         private void LateUpdate()
@@ -74,19 +75,19 @@ namespace ShuttleLab.Camera
             Vector3 toLook = lookAt - desiredPos;
             Quaternion desiredRot = toLook.sqrMagnitude > 0.01f
                 ? Quaternion.LookRotation(toLook, Vector3.up)
-                : transform.rotation;
+                : _cam.transform.rotation;
 
             if (!_positioned)
             {
-                transform.position = desiredPos;
-                transform.rotation = desiredRot;
+                _cam.transform.position = desiredPos;
+                _cam.transform.rotation = desiredRot;
                 _positioned = true;
                 return;
             }
 
             float t = 1f - Mathf.Exp(-FollowSpeed * Time.deltaTime);
-            transform.position = Vector3.Lerp(transform.position, desiredPos, t);
-            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRot, t);
+            _cam.transform.position = Vector3.Lerp(_cam.transform.position, desiredPos, t);
+            _cam.transform.rotation = Quaternion.Slerp(_cam.transform.rotation, desiredRot, t);
         }
 
         private void GetDesired(out Vector3 pos, out Vector3 lookAt)

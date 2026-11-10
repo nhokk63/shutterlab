@@ -31,7 +31,7 @@ namespace ShuttleLab.Core
         public AppMode CurrentMode { get; private set; } = AppMode.Menu;
 
         private int _difficulty = 2;
-        /// <summary>Độ khó AI 0..5 (mặc định 2 = Normal/Advanced).</summary>
+        /// <summary>Độ khó AI 0..5 (mặc định 2 = Intermediate).</summary>
         public int Difficulty
         {
             get => _difficulty;
@@ -76,7 +76,6 @@ namespace ShuttleLab.Core
             {
                 _musicVolume = Mathf.Clamp01(value);
                 PlayerPrefs.SetFloat(KeyMusicVolume, _musicVolume);
-                PlayerPrefs.Save();
             }
         }
 
@@ -88,7 +87,6 @@ namespace ShuttleLab.Core
             {
                 _sfxVolume = Mathf.Clamp01(value);
                 PlayerPrefs.SetFloat(KeySfxVolume, _sfxVolume);
-                PlayerPrefs.Save();
             }
         }
 
@@ -114,6 +112,8 @@ namespace ShuttleLab.Core
             Instance = this;
             DontDestroyOnLoad(gameObject);
             LoadSettings();
+            // Áp cài đặt đồ hoạ đã lưu (lần đầu: tự detect theo máy).
+            ShuttleLab.Systems.GraphicsQuality.ApplySaved();
         }
 
         public void LoadSettings()

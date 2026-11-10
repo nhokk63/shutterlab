@@ -72,6 +72,8 @@ namespace ShuttleLab.UI
                 ScoreText.text = $"Tỉ số ván: {score.Games[0]}-{score.Games[1]}"
                     + $"  •  Điểm ván cuối: {score.Points[0]}-{score.Points[1]}";
             }
+            else if (ScoreText != null)
+                ScoreText.text = string.Empty;
 
             if (StatsText != null)
             {
@@ -145,40 +147,50 @@ namespace ShuttleLab.UI
                 && RematchButton != null && MenuButton != null)
                 return; // đã gán đủ qua Inspector thì không dựng lại
 
-            // Panel nền tối phủ toàn màn hình (con của Canvas cha).
-            var bg = UIBuilder.CreatePanel(transform, "ResultsBackground",
-                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(0f, 0f, 0f, 0.75f));
+            // Panel nền + khung: chỉ tạo khi chưa có; từng field chỉ tạo
+            // khi null (tránh ghi đè field đã gán qua Inspector).
+            Transform bg = transform.Find("ResultsBackground");
+            if (bg == null)
+                bg = UIBuilder.CreatePanel(transform, "ResultsBackground",
+                    Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                    new Color(0f, 0f, 0f, 0.75f));
 
             // Khung kết quả ở giữa.
-            var card = UIBuilder.CreatePanel(bg, "ResultsCard",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(560f, 520f), UIBuilder.PanelSolid);
+            Transform card = bg.Find("ResultsCard");
+            if (card == null)
+                card = UIBuilder.CreatePanel(bg, "ResultsCard",
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    Vector2.zero, new Vector2(560f, 520f), UIBuilder.PanelSolid);
 
-            TitleText = UIBuilder.CreateText(card, "TitleText", "Kết quả",
-                36, UIBuilder.AccentText, TextAnchor.MiddleCenter,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -50f), new Vector2(520f, 50f));
+            if (TitleText == null)
+                TitleText = UIBuilder.CreateText(card, "TitleText", "Kết quả",
+                    36, UIBuilder.AccentText, TextAnchor.MiddleCenter,
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(0f, -50f), new Vector2(520f, 50f));
 
-            ScoreText = UIBuilder.CreateText(card, "ScoreText", string.Empty,
-                24, UIBuilder.TextWhite, TextAnchor.MiddleCenter,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -105f), new Vector2(520f, 34f));
+            if (ScoreText == null)
+                ScoreText = UIBuilder.CreateText(card, "ScoreText", string.Empty,
+                    24, UIBuilder.TextWhite, TextAnchor.MiddleCenter,
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(0f, -105f), new Vector2(520f, 34f));
 
-            StatsText = UIBuilder.CreateText(card, "StatsText", string.Empty,
-                22, UIBuilder.TextDim, TextAnchor.UpperLeft,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -280f), new Vector2(480f, 300f));
+            if (StatsText == null)
+                StatsText = UIBuilder.CreateText(card, "StatsText", string.Empty,
+                    22, UIBuilder.TextDim, TextAnchor.UpperLeft,
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(0f, -280f), new Vector2(480f, 300f));
 
-            RematchButton = UIBuilder.CreateButton(card, "RematchButton", "Đấu lại",
-                24, OnRematchButton,
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(-140f, 45f), new Vector2(230f, 56f));
+            if (RematchButton == null)
+                RematchButton = UIBuilder.CreateButton(card, "RematchButton", "Đấu lại",
+                    24, OnRematchButton,
+                    new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+                    new Vector2(-140f, 45f), new Vector2(230f, 56f));
 
-            MenuButton = UIBuilder.CreateButton(card, "MenuButton", "Về menu",
-                24, OnMenuButton,
-                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(140f, 45f), new Vector2(230f, 56f));
+            if (MenuButton == null)
+                MenuButton = UIBuilder.CreateButton(card, "MenuButton", "Về menu",
+                    24, OnMenuButton,
+                    new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+                    new Vector2(140f, 45f), new Vector2(230f, 56f));
         }
     }
 }

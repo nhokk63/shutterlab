@@ -25,7 +25,7 @@ namespace ShuttleLab.Match
             Score.Server == 0 ? "Giao cầu: Bạn" : "Giao cầu: Đối thủ";
 
         /// <summary>Cả hai đều >= 20 điểm (deuce, phải hơn 2 mới thắng ván).</summary>
-        public bool IsDeuce() => Score.Points[0] >= 20 && Score.Points[1] >= 20;
+        public bool IsDeuce() => Score.Points[0] >= 20 && Score.Points[0] == Score.Points[1];
 
         /// <summary>
         /// Player có đang ở match point không — tức thắng điểm này thì thắng

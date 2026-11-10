@@ -1,5 +1,4 @@
 using UnityEngine;
-using ShuttleLab.Core;
 
 namespace ShuttleLab.Gameplay
 {
@@ -12,7 +11,7 @@ namespace ShuttleLab.Gameplay
     /// </summary>
     public static class ShotSolver
     {
-        private const int MaxIterations = 8;
+        private const int MaxIterations = 12;
         private const float ConvergeDistance = 0.15f;
         private const float SimDt = 1f / 240f;
 
@@ -57,10 +56,13 @@ namespace ShuttleLab.Gameplay
             if (type == ShotType.Clear || type == ShotType.Lift || type == ShotType.ServeHigh)
                 v0.y = Mathf.Max(v0.y, apexVy * 0.85f);
 
-            // Shooting iterations with drag.
+            // Shooting iterations with drag. Power factor is applied INSIDE the
+            // loop so convergence is checked on the velocity actually returned
+            // (the old code converged pre-power, then scaled down and landed short).
             for (int i = 0; i < MaxIterations; i++)
             {
-                bool landed = ShuttleAerodynamics.Simulate(start, v0, wind, 5f, SimDt,
+                Vector3 vEff = v0 * ShotTiming.PowerFactor(quality);
+                bool landed = ShuttleAerodynamics.Simulate(start, vEff, wind, 5f, SimDt,
                     out Vector3 simLanding, out float simTime, out _);
                 if (!landed) return false;
 
@@ -69,19 +71,31 @@ namespace ShuttleLab.Gameplay
                 float errDist = error.magnitude;
                 if (errDist < ConvergeDistance) break;
 
-                // Correct: shift horizontal velocity by error / flight time,
-                // and lift/drop vy if we are short/long in time.
-                v0.x += error.x / Mathf.Max(0.2f, simTime) * 0.9f;
-                v0.z += error.z / Mathf.Max(0.2f, simTime) * 0.9f;
+                // Drag-aware correction: under quadratic drag, range is
+                // logarithmic in launch speed (range ~ ln(1+k*vh*t)/k), so the
+                // linear correction must be scaled by (1+k*vh*t) to converge
+                // on long shots (a Clear needs ~45 m/s from a 12.7 m/s guess).
+                float k = 0.5f * ShuttleAerodynamics.Rho * ShuttleAerodynamics.Cd
+                    * ShuttleAerodynamics.Area / ShuttleAerodynamics.Mass;
+                float vh = new Vector2(v0.x, v0.z).magnitude;
+                float dragScale = 1f + k * vh * Mathf.Max(0.2f, simTime);
+                v0.x += error.x / Mathf.Max(0.2f, simTime) * dragScale;
+                v0.z += error.z / Mathf.Max(0.2f, simTime) * dragScale;
                 float timeErr = flightTime - simTime;
                 v0.y += timeErr * 2.0f;
 
                 if (v0.magnitude > 75f) return false; // unreachable at sane speeds
-                if (i == MaxIterations - 1 && errDist > 0.6f) return false;
+                if (i == MaxIterations - 1) return false; // never accept an unverified velocity
             }
 
-            // Quality power factor: weaker contact = slower shuttle.
-            v0 *= ShotTiming.PowerFactor(quality);
+            // Final verification: re-simulate the velocity we are about to return.
+            Vector3 vFinal = v0 * ShotTiming.PowerFactor(quality);
+            bool okFinal = ShuttleAerodynamics.Simulate(start, vFinal, wind, 5f, SimDt,
+                out Vector3 finalLanding, out _, out _);
+            if (!okFinal) return false;
+            Vector3 finalError = aim - finalLanding; finalError.y = 0f;
+            if (finalError.magnitude > ConvergeDistance) return false;
+            v0 = vFinal;
 
             // Sanity: must go roughly towards the target and over the net.
             Vector3 dir = (aim - start);

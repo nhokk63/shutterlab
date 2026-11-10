@@ -343,6 +343,8 @@ namespace ShuttleLab.Players
             if (MaterialCache.TryGetValue(color, out Material mat)) return mat;
             Shader shader = Shader.Find("Universal Render Pipeline/Lit")
                 ?? Shader.Find("Standard");
+            if (shader == null) shader = Shader.Find("Hidden/InternalErrorShader");
+            if (shader == null) { Debug.LogError("[HumanoidBuilder] Không tìm thấy shader URP/Lit lẫn Standard."); return null; }
             mat = new Material(shader) { color = color };
             MaterialCache[color] = mat;
             return mat;
@@ -356,6 +358,8 @@ namespace ShuttleLab.Players
                 {
                     Shader shader = Shader.Find("Universal Render Pipeline/Lit")
                         ?? Shader.Find("Standard");
+                    if (shader == null) shader = Shader.Find("Hidden/InternalErrorShader");
+                    if (shader == null) { Debug.LogError("[HumanoidBuilder] Không tìm thấy shader URP/Lit lẫn Standard."); return null; }
                     _stringMaterial = new Material(shader)
                     {
                         color = new Color(0.92f, 0.92f, 0.88f)
@@ -373,6 +377,8 @@ namespace ShuttleLab.Players
                 {
                     Shader shader = Shader.Find("Universal Render Pipeline/Lit")
                         ?? Shader.Find("Standard");
+                    if (shader == null) shader = Shader.Find("Hidden/InternalErrorShader");
+                    if (shader == null) { Debug.LogError("[HumanoidBuilder] Không tìm thấy shader URP/Lit lẫn Standard."); return null; }
                     _racketFrameMaterial = new Material(shader)
                     {
                         color = new Color(0.15f, 0.15f, 0.18f)

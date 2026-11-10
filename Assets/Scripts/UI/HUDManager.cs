@@ -189,6 +189,16 @@ namespace ShuttleLab.UI
             Results.Show(winner,
                 _match.Rules != null ? _match.Rules.Score : null,
                 _match.Stats, userName, aiName);
+            // Ghi kết quả vào bracket giải (nếu trận này thuộc tuần giải).
+            var session = ShuttleLab.Systems.TournamentSession.Instance;
+            if (session != null && session.Tournament != null && session.Tournament.IsActive)
+            {
+                session.Tournament.ReportPlayerMatch(won: winner == 0);
+                if (session.Career != null)
+                    session.Career.RecordTournamentResult(session.Tournament.PlayerPlacement,
+                        session.Career.CurrentTier, session.Tournament.PlayerMatchesWon,
+                        session.Tournament.PlayerMatchesLost);
+            }
         }
 
         // --- Nút (gán qua UnityEvent hoặc code) ------------------------------
@@ -208,6 +218,7 @@ namespace ShuttleLab.UI
         public void OnRestartButton()
         {
             if (_match == null) return;
+            Time.timeScale = 1f; // Pause() left timeScale at 0 — restore it first.
             if (PausePanel != null) PausePanel.SetActive(false);
             if (Results != null) Results.Hide();
             _match.StartMatch(_match.DifficultyLevel, _match.IsPractice);
@@ -288,23 +299,30 @@ namespace ShuttleLab.UI
             Transform root = _canvas.transform;
 
             // --- Thanh điểm trên cùng ---
+            // Panel chỉ tạo khi còn thiếu text; từng text chỉ tạo khi null
+            // (tránh ghi đè field đã gán qua Inspector).
             if (ScoreText == null || NamesText == null || SubText == null)
             {
-                var topBar = UIBuilder.CreatePanel(root, "TopBar",
-                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -52f), new Vector2(480f, 96f), UIBuilder.PanelDark);
-                NamesText = UIBuilder.CreateText(topBar, "NamesText", "Bạn  vs  Đối thủ",
-                    20, UIBuilder.TextDim, TextAnchor.MiddleCenter,
-                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -16f), new Vector2(460f, 26f));
-                ScoreText = UIBuilder.CreateText(topBar, "ScoreText", "0-0",
-                    34, UIBuilder.TextWhite, TextAnchor.MiddleCenter,
-                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -50f), new Vector2(460f, 44f));
-                SubText = UIBuilder.CreateText(topBar, "SubText", string.Empty,
-                    18, UIBuilder.TextDim, TextAnchor.MiddleCenter,
-                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                    new Vector2(0f, -82f), new Vector2(460f, 24f));
+                Transform topBar = root.Find("TopBar");
+                if (topBar == null)
+                    topBar = UIBuilder.CreatePanel(root, "TopBar",
+                        new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                        new Vector2(0f, -52f), new Vector2(480f, 96f), UIBuilder.PanelDark);
+                if (NamesText == null)
+                    NamesText = UIBuilder.CreateText(topBar, "NamesText", "Bạn  vs  Đối thủ",
+                        20, UIBuilder.TextDim, TextAnchor.MiddleCenter,
+                        new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                        new Vector2(0f, -16f), new Vector2(460f, 26f));
+                if (ScoreText == null)
+                    ScoreText = UIBuilder.CreateText(topBar, "ScoreText", "0-0",
+                        34, UIBuilder.TextWhite, TextAnchor.MiddleCenter,
+                        new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                        new Vector2(0f, -50f), new Vector2(460f, 44f));
+                if (SubText == null)
+                    SubText = UIBuilder.CreateText(topBar, "SubText", string.Empty,
+                        18, UIBuilder.TextDim, TextAnchor.MiddleCenter,
+                        new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                        new Vector2(0f, -82f), new Vector2(460f, 24f));
             }
 
             // --- Nhãn Deuce / Match point ---

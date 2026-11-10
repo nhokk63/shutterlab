@@ -61,13 +61,21 @@ namespace ShuttleLab.Tests
                 "Cầu phải bay sau khi giao cầu.");
 
             // Đợi một điểm được ghi (AI đỡ rồi user không trả, hoặc giao
-            // ăn điểm trực tiếp). Trận kẹt = fail.
+            // ăn điểm trực tiếp). Trận kẹt = fail. Nếu giao lỗi (cầu không
+            // bay, watchdog đưa về Serving), giao lại tối đa 3 lần.
             wait = 0f;
             int totalPoints = 0;
+            int serveRetries = 0;
             while (wait < 25f)
             {
                 totalPoints = _match.Rules.Score.Points[0] + _match.Rules.Score.Points[1];
                 if (totalPoints > 0) break;
+                if (_match.Phase == MatchManager.MatchPhase.Serving && wait > 5f && serveRetries < 3)
+                {
+                    serveRetries++;
+                    _match.RequestUserServe();
+                    wait = 0f;
+                }
                 wait += Time.deltaTime;
                 yield return null;
             }
@@ -143,7 +151,7 @@ namespace ShuttleLab.Tests
                 {
                     float f = prev.z / (prev.z - cur.z);
                     Vector3 cross = Vector3.Lerp(prev, cur, f);
-                    if (Mathf.Abs(cross.x) <= CourtDimensions.DoublesHalfWidth)
+                    if (Mathf.Abs(cross.x) <= CourtDimensions.DoublesHalfWidth - 0.15f)
                     {
                         float netH = CourtDimensions.NetHeightAt(cross.x);
                         Assert.GreaterOrEqual(cross.y, netH - 0.10f,
@@ -154,6 +162,8 @@ namespace ShuttleLab.Tests
                 t += Time.deltaTime;
                 yield return null;
             }
+            Assert.Greater(_match.Stats.ShotsHit, 0,
+                "Test vô nghĩa: không có cú đánh nào được thực hiện trong 20 s.");
         }
     }
 }

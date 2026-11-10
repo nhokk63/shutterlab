@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using ShuttleLab.Gameplay;
 using ShuttleLab.Match;
+using ShuttleLab.Core;
 
 namespace ShuttleLab.Tests
 {

@@ -101,7 +101,10 @@ namespace ShuttleLab.UI
             _career.LoadFromSave(SaveManager.Current);
             _equipment = new EquipmentManager();
             _equipment.LoadFromSave(SaveManager.Current);
-            _tournament = new TournamentManager();
+            // Khôi phục bracket tuần giải đang chơi (nếu vừa đánh xong trận
+            // giải quay lại); tuần mới / sự nghiệp mới tạo bracket mới ở
+            // OnAdvanceWeekButton / OnStartCareerButton.
+            _tournament = TournamentSession.Instance?.Tournament ?? new TournamentManager();
 
             BuildIfNeeded();
             Refresh();
@@ -158,6 +161,15 @@ namespace ShuttleLab.UI
             if (_tournament.NextOpponent() == null) return;
             SaveManager.SyncFromGameState();
             SaveManager.Save();
+            // Giữ bracket + sự nghiệp qua đổi scene để HUD ghi kết quả
+            // trận giải vào đúng chỗ khi trận kết thúc.
+            if (TournamentSession.Instance == null)
+            {
+                var sessionGO = new GameObject("TournamentSession");
+                sessionGO.AddComponent<TournamentSession>();
+            }
+            TournamentSession.Instance.Tournament = _tournament;
+            TournamentSession.Instance.Career = _career;
             if (GameStateManager.Instance != null)
             {
                 int difficulty = GameStateManager.Instance.Difficulty;

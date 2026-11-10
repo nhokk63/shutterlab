@@ -41,7 +41,7 @@ namespace ShuttleLab.UI
                 {
                     _defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                     if (_defaultFont == null)
-                        _defaultFont = Font.CreateDynamicFontFromOSFont("Arial", 16);
+                        _defaultFont = Font.CreateDynamicFontFromOSFont(new[] { "Arial", "Roboto", "sans-serif" }, 16);
                 }
                 return _defaultFont;
             }
@@ -57,12 +57,12 @@ namespace ShuttleLab.UI
         }
 
         /// <summary>Canvas ScreenSpaceOverlay, scaler 1280x720 (landscape).</summary>
-        public static Canvas CreateCanvas(string name)
+        public static Canvas CreateCanvas(string name, int sortingOrder = 10)
         {
             var go = new GameObject(name);
             var canvas = go.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 10;
+            canvas.sortingOrder = sortingOrder;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280f, 720f);

@@ -113,6 +113,18 @@ namespace ShuttleLab.UI
             if (_built) return;
             _built = true;
 
+            // Đã gán đủ qua Inspector thì không dựng lại (tránh tạo trùng UI
+            // và ghi đè field đã gán).
+            bool allAssigned = PlayerNameInput != null && QuickMatchButton != null
+                && PracticeButton != null && CareerButton != null
+                && SettingsButton != null && CareerNoteText != null;
+            if (allAssigned && _difficultyButtons != null)
+            {
+                foreach (var b in _difficultyButtons)
+                    if (b == null) { allAssigned = false; break; }
+            }
+            if (allAssigned) return;
+
             var canvas = GetComponentInChildren<Canvas>();
             if (canvas == null)
             {

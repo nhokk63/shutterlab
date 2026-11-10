@@ -3,14 +3,10 @@
 // Pure data, no MonoBehaviour, no scene dependencies. All balancing for
 // the AI lives here (ARCHITECTURE.md: "No hard-coded data").
 //
-// LEVEL NAMES — LỆCH ĐÃ BIẾT (2026-11-09):
-// This file uses Beginner / Amateur / Intermediate / Advanced / Pro /
-// Legend (the names in the AI module spec). PlayerStats.DifficultyName
-// uses a DIFFERENT set (Beginner / Intermediate / Advanced / Expert /
-// Master / Legend) for the same 0..5 levels. The two must be unified
-// before the difficulty names are shown in the UI; until then the AI
-// module is the source of truth for AI behaviour, PlayerStats only for
-// the AI's base attributes (FromDifficulty).
+// LEVEL NAMES — đã thống nhất (2026-11-10): cả hai file dùng chung
+// Beginner / Amateur / Intermediate / Advanced / Pro / Legend.
+// (Comment cũ nói PlayerStats dùng tên khác là SAI — PlayerStats đã trả
+// đúng 6 tên này; đừng "sửa" theo comment cũ kẻo phá vỡ sự khớp nhau.)
 
 using UnityEngine;
 

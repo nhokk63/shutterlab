@@ -17,10 +17,10 @@
 //    hoặc cần tối ưu hiệu năng / chống dịch ngược.
 //  - Strip engine code KHÔNG bật (giữ an toàn bản đầu — tránh strip nhầm
 //    class dùng qua reflection / SendMessage như HUDManager.BindMatch).
-//  - Chỉ ARM64 (arm64-v8a), theo yêu cầu; target API 34, min API 24,
+//  - Chỉ ARM64 (arm64-v8a), theo yêu cầu; target API 35, min API 24,
 //    Graphics API OpenGLES3, màn hình ngang 2 chiều.
 //  - APK ra ~/workspace/shuttlelab/build/ShuttleLab-Android-v0.1.0.apk
-//    (đường dẫn tuyệt đối qua biến môi trường HOME).
+//    (đường dẫn tuyệt đối qua HOME trên Linux / USERPROFILE trên Windows).
 
 using System;
 using System.IO;
@@ -40,9 +40,18 @@ namespace ShuttleLab.Editor
         public const int BundleVersionCode = 1;
 
         /// <summary>Đường dẫn APK đầu ra (tuyệt đối).</summary>
-        public static string ApkPath => Path.Combine(
-            Environment.GetEnvironmentVariable("HOME") ?? string.Empty,
-            "workspace/shuttlelab/build/ShuttleLab-Android-v0.1.0.apk");
+        public static string ApkPath
+        {
+            get
+            {
+                string home = Environment.GetEnvironmentVariable("HOME")
+                    ?? Environment.GetEnvironmentVariable("USERPROFILE");
+                string dir = string.IsNullOrEmpty(home)
+                    ? Path.GetFullPath(Path.Combine(Application.dataPath, "..", "build"))
+                    : Path.Combine(home, "workspace", "shuttlelab", "build");
+                return Path.Combine(dir, "ShuttleLab-Android-v0.1.0.apk");
+            }
+        }
 
         [MenuItem("ShuttleLab/Build Android APK")]
         public static void BuildAndroidFromMenu()
@@ -126,7 +135,8 @@ namespace ShuttleLab.Editor
         {
             PlayerSettings.companyName = CompanyName;
             PlayerSettings.productName = ProductName;
-            PlayerSettings.applicationIdentifier = PackageName;
+            PlayerSettings.colorSpace = ColorSpace.Linear; // URP thiết kế cho Linear, Gamma làm sáng/tối sai
+            PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, PackageName);
             PlayerSettings.bundleVersion = Version;
             PlayerSettings.Android.bundleVersionCode = BundleVersionCode;
 
@@ -136,7 +146,7 @@ namespace ShuttleLab.Editor
 
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel24;
-            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel34;
+            PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel35;
 
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             PlayerSettings.allowedOrientations =

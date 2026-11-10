@@ -108,12 +108,23 @@ namespace ShuttleLab.Editor
         /// Tạo (hoặc tái sử dụng) UniversalRenderPipelineAsset và gán làm
         /// render pipeline toàn project. Chạy lại menu sẽ không tạo trùng.
         /// </summary>
+        public const string UrpRendererPath = "Assets/Settings/ShuttleLabRenderer.asset";
+
         public static void EnsureUrpAsset()
         {
             var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(UrpAssetPath);
+            // Repair an existing asset created by the old code (null renderer).
+            if (urp != null && urp.GetRenderer(0) == null)
+            {
+                Debug.LogWarning("[SceneBuilder] URP asset cũ thiếu renderer — tạo lại.");
+                AssetDatabase.DeleteAsset(UrpAssetPath);
+                urp = null;
+            }
             if (urp == null)
             {
-                urp = ScriptableObject.CreateInstance<UniversalRenderPipelineAsset>();
+                var rendererData = ScriptableObject.CreateInstance<UniversalRendererData>();
+                AssetDatabase.CreateAsset(rendererData, UrpRendererPath);
+                urp = UniversalRenderPipelineAsset.Create(rendererData);
                 urp.renderScale = 1f;
                 urp.msaaSampleCount = 4;
                 urp.shadowDistance = 50f;
@@ -225,6 +236,7 @@ namespace ShuttleLab.Editor
 
             // --- Camera + CameraManager (LateUpdate tự đặt vị trí) ---
             var camGO = new GameObject("CameraRig");
+            camGO.tag = "MainCamera"; // để Camera.main fallback trong CameraManager có tác dụng
             var cam = camGO.AddComponent<UnityEngine.Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.02f, 0.03f, 0.05f);
@@ -390,7 +402,7 @@ namespace ShuttleLab.Editor
         /// </summary>
         private static void BuildInputPanels(Transform parent, MobileInputManager input)
         {
-            var canvas = UIBuilder.CreateCanvas("InputCanvas");
+            var canvas = UIBuilder.CreateCanvas("InputCanvas", 5); // dưới HUD (10)
             canvas.transform.SetParent(parent, false);
             Transform root = canvas.transform;
 
@@ -605,6 +617,7 @@ namespace ShuttleLab.Editor
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat != null) return mat;
             Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (shader == null) throw new System.Exception("[SceneBuilder] Không tìm thấy shader URP/Lit lẫn Standard.");
             mat = new Material(shader) { color = color };
             AssetDatabase.CreateAsset(mat, path);
             return mat;
@@ -617,6 +630,7 @@ namespace ShuttleLab.Editor
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat != null) return mat;
             Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (shader == null) throw new System.Exception("[SceneBuilder] Không tìm thấy shader URP/Lit lẫn Standard.");
             mat = new Material(shader)
             {
                 color = new Color(0.92f, 0.92f, 0.90f, 0.45f)

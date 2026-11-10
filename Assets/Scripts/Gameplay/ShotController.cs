@@ -55,7 +55,9 @@ namespace ShuttleLab.Gameplay
             if (!ShotSolver.Solve(start, target, type, quality, wind, out Vector3 v0))
             {
                 // Fallback: height-appropriate shot, same target, one retry.
-                ShotType fallback = ShotSolver.FallbackShot(_shuttle.transform.position.y);
+                // Dùng độ cao điểm tiếp xúc (start), không phải vị trí cầu
+                // lúc này (cầu chưa snap tới vợt, có thể lệch tới 1.15 m).
+                ShotType fallback = ShotSolver.FallbackShot(start.y);
                 if (fallback == type) return false;
                 if (!ShotSolver.Solve(start, target, fallback, quality, wind, out v0))
                     return false;

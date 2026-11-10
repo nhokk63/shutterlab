@@ -132,6 +132,7 @@ namespace ShuttleLab.Players
                         Debug.LogWarning("[CC0CharacterRig] Thiếu bone '" + kv.Value
                             + "' trong model " + modelPrefab.name
                             + " — fallback humanoid procedural.");
+                        Retargeter = null;
                         Destroy(model);
                         return false;
                     }

@@ -42,6 +42,7 @@ namespace ShuttleLab.Match
                 c.Games[0] = Games[0]; c.Games[1] = Games[1];
                 c.CurrentGame = CurrentGame;
                 c.Server = Server; c.Receiver = Receiver;
+                c.WonGame[0] = WonGame[0]; c.WonGame[1] = WonGame[1];
                 return c;
             }
         }
@@ -91,6 +92,7 @@ namespace ShuttleLab.Match
         {
             fault = FaultReason.None;
             isLet = false;
+            if (lastHitter < 0 || lastHitter > 1) return 0;
             int opponent = 1 - lastHitter;
 
             bool inSingles = CourtDimensions.IsInSingles(landing);

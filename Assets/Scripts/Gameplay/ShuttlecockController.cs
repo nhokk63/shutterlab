@@ -106,9 +106,9 @@ namespace ShuttleLab.Gameplay
                 FlightTime += h;
                 if (pos.y > ApexHeight) ApexHeight = pos.y;
 
+                if (CheckCourtLanding()) return;
                 if (CheckNetCollision()) break;
                 if (CheckPostCollision()) break;
-                if (CheckCourtLanding()) return;
                 if (pos.y < KillY || pos.magnitude > 60f)
                 {
                     Kill();
@@ -165,16 +165,21 @@ namespace ShuttleLab.Gameplay
             Velocity = v;
             // Push back to the hitter's side so we don't tunnel through.
             Vector3 p = transform.position;
-            p.z = _prevPos.z + Mathf.Sign(_prevPos.z) * 0.02f;
+            float side = Mathf.Abs(_prevPos.z) < 1e-6f ? Mathf.Sign(pos.z) : Mathf.Sign(_prevPos.z);
+            if (Mathf.Abs(side) < 1e-6f) side = 1f;
+            p.z = _prevPos.z + side * 0.02f;
             transform.position = p;
             OnNetHit?.Invoke();
             return true;
         }
 
+        private static readonly float[] PostX =
+            { -CourtDimensions.DoublesHalfWidth, CourtDimensions.DoublesHalfWidth };
+
         private bool CheckPostCollision()
         {
             Vector3 pos = transform.position;
-            foreach (float px in new[] { -CourtDimensions.DoublesHalfWidth, CourtDimensions.DoublesHalfWidth })
+            foreach (float px in PostX)
             {
                 Vector3 postTop = new Vector3(px, CourtDimensions.PostHeight, 0f);
                 Vector3 postBottom = new Vector3(px, 0f, 0f);

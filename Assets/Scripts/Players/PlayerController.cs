@@ -71,7 +71,8 @@ namespace ShuttleLab.Players
             // (thiếu file/thiếu xương) cũng fallback sang humanoid
             // procedural — xem CC0CharacterRig.cs. Không throw ở đây.
             var cc0 = GetComponent<CC0CharacterRig>();
-            if (cc0 == null || !cc0.TryBuildRig(this, Stats, out HumanoidRig cc0Rig))
+            bool useCC0 = cc0 != null && cc0.TryBuildRig(this, Stats, out HumanoidRig cc0Rig);
+            if (!useCC0)
                 Rig = HumanoidBuilder.Build(gameObject, Stats, Stats.LeftHanded);
             else
                 Rig = cc0Rig;
@@ -88,7 +89,7 @@ namespace ShuttleLab.Players
             Anim.Bind(Rig);
             // Rig CC0: animation procedural phải đi qua retargeter (bind
             // pose T-pose khác rig procedural) — chỉ set khi CC0 dùng được.
-            if (cc0 != null && cc0.Retargeter != null)
+            if (useCC0 && cc0.Retargeter != null)
                 Anim.Retargeter = cc0.Retargeter;
             Racket.Bind(Rig, Anim);
             ShotCtrl.Init(Shuttle, this);
@@ -207,11 +208,11 @@ namespace ShuttleLab.Players
         /// Serve clip's onContact callback. Serve quality is deterministic
         /// (Perfect when stamina is high, else Good).
         /// </summary>
-        public void Serve(ShotType serveType, Vector3 targetBox)
+        public bool Serve(ShotType serveType, Vector3 targetBox)
         {
             if (!ShotLibrary.IsServe(serveType)) serveType = ShotType.ServeLow;
-            if (IsSwinging) return;
-            if (Shuttle == null) return;
+            if (IsSwinging) return false;
+            if (Shuttle == null) return false;
 
             if (Shuttle.State == ShuttlecockController.ShuttleState.Held && Racket != null)
                 Shuttle.HoldAt(Racket.ContactPoint);
@@ -226,6 +227,7 @@ namespace ShuttleLab.Players
             Racket.PlaySwing(type, Anim != null ? Anim.GetClipDuration("Serve") : 0.8f,
                 onContact: () => ShotCtrl.ExecuteShot(type, targetBox, quality),
                 onEnd: () => { IsSwinging = false; });
+            return true;
         }
 
         // --- Movement (input / AI) --------------------------------------------

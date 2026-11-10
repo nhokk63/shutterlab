@@ -20,12 +20,10 @@ namespace ShuttleLab.Input
 
         private RectTransform _bg;
         private int _pointerId = -1;
-        private float _origPosX;
 
         private void Awake()
         {
             _bg = GetComponent<RectTransform>();
-            _origPosX = _bg != null ? _bg.anchoredPosition.x : 0f;
             if (knob == null)
             {
                 var knobT = transform.Find("Knob");
@@ -76,21 +74,6 @@ namespace ShuttleLab.Input
 
             // x -> x thế giới, y (lên màn hình) -> z thế giới (tiến về lưới).
             inputManager?.SetJoystick(clamped / maxRadius);
-        }
-
-        /// <summary>
-        /// Tay trái: chuyển cả vùng joystick sang phía phải màn hình (và ngược lại).
-        /// Chỉ đổi anchor ngang + dấu anchoredPosition.x.
-        /// </summary>
-        public void SetLeftHand(bool left)
-        {
-            if (_bg == null) return;
-            float anchorX = left ? 1f : 0f;
-            Vector2 min = _bg.anchorMin; min.x = anchorX; _bg.anchorMin = min;
-            Vector2 max = _bg.anchorMax; max.x = anchorX; _bg.anchorMax = max;
-            Vector2 pos = _bg.anchoredPosition;
-            pos.x = left ? -Mathf.Abs(_origPosX) : Mathf.Abs(_origPosX);
-            _bg.anchoredPosition = pos;
         }
     }
 }

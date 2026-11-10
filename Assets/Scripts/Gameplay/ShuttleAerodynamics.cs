@@ -58,6 +58,7 @@ namespace ShuttleLab.Gameplay
             if (start.y <= 0f && v0.y <= 0f)
             {
                 landing = start;
+                landing.y = 0f;
                 return true;
             }
 

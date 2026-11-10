@@ -64,7 +64,6 @@ namespace ShuttleLab.Players
         private float _lungeTimer;
         private float _lungeCooldownTimer;
         private Vector3 _lungeDir = Vector3.forward;
-        private bool _recovering;
 
         public void Init(PlayerStats stats, int sideSign)
         {
@@ -82,7 +81,6 @@ namespace ShuttleLab.Players
         {
             _moveInput = Vector2.ClampMagnitude(input, 1f);
             _moveTarget = null;
-            _recovering = false;
         }
 
         /// <summary>Steer toward a court position (used by AI / recovery).</summary>
@@ -96,7 +94,6 @@ namespace ShuttleLab.Players
         /// <summary>Head back to the home (base) position at 0.8x max speed.</summary>
         public void RecoverToHome(Vector3 homePosition)
         {
-            _recovering = true;
             MoveTowards(homePosition, 0.8f);
         }
 
@@ -104,7 +101,6 @@ namespace ShuttleLab.Players
         {
             _moveInput = Vector2.zero;
             _moveTarget = null;
-            _recovering = false;
         }
 
         /// <summary>
@@ -163,7 +159,6 @@ namespace ShuttleLab.Players
             _moveInput = Vector2.zero;
             _lungeTimer = 0f;
             _lungeCooldownTimer = 0f;
-            _recovering = false;
         }
 
         private void FixedUpdate()
@@ -186,7 +181,6 @@ namespace ShuttleLab.Players
                 {
                     // Arrived.
                     _moveTarget = null;
-                    _recovering = false;
                 }
                 else
                 {

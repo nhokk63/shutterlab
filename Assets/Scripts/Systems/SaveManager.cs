@@ -7,8 +7,10 @@
 //  - SaveManager lo DỮ LIỆU DÀI HẠN: profile, tiến trình Career, trang bị
 //    sở hữu/đang dùng, kỷ lục training. KHÔNG thay GameStateManager —
 //    setting chạy (độ khó, âm lượng...) vẫn do GameStateManager giữ qua
-//    PlayerPrefs; profile trong file save chỉ là bản sao để đồng bộ khi
-//    load (ApplyToGameState) / trước khi save (SyncFromGameState).
+//    PlayerPrefs (PlayerPrefs là chủ duy nhất của setting); profile trong
+//    file save chỉ là bản sao ghi ra trước khi save (SyncFromGameState),
+//    không đọc ngược lại — ApplyToGameState đã xóa vì bản sao có thể cũ
+//    hơn setting chạy và ghi đè ngược sẽ làm mất setting mới.
 //
 // Ghi atom: ghi file tạm ".tmp" -> copy file cũ thành ".bak" -> đổi tên
 // ".tmp" thành file chính. Đọc lỗi/corrupt: thử ".bak", vẫn lỗi thì về
@@ -199,20 +201,7 @@ namespace ShuttleLab.Systems
         }
 
         // --- Đồng bộ profile với GameStateManager (setting chạy) -----------
-
-        /// <summary>Đẩy profile từ file save vào GameStateManager (gọi khi load).</summary>
-        public static void ApplyToGameState()
-        {
-            var gs = Core.GameStateManager.Instance;
-            if (gs == null) return;
-            var d = Current;
-            gs.PlayerName = d.PlayerName;
-            gs.Difficulty = d.Difficulty;
-            gs.MusicVolume = d.MusicVolume;
-            gs.SfxVolume = d.SfxVolume;
-            gs.CameraPreset = d.CameraPreset;
-            gs.LeftHandMode = d.LeftHandMode;
-        }
+        // (Chỉ một chiều ra file save trước khi Save(); không đọc ngược.)
 
         /// <summary>Kéo setting chạy từ GameStateManager vào SaveData trước khi Save().</summary>
         public static void SyncFromGameState()

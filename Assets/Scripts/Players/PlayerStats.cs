@@ -80,8 +80,8 @@ namespace ShuttleLab.Players
 
         /// <summary>
         /// AI stats for a difficulty level 0..5:
-        /// 0 Beginner ~35, 1 Intermediate ~50, 2 Advanced ~62,
-        /// 3 Expert ~74, 4 Master ~84, 5 Legend ~92.
+        /// 0 Beginner ~35, 1 Amateur ~50, 2 Intermediate ~62,
+        /// 3 Advanced ~74, 4 Pro ~84, 5 Legend ~92.
         /// Out-of-range levels are clamped.
         /// </summary>
         public static PlayerStats FromDifficulty(int level)

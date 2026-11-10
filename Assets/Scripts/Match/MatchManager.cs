@@ -20,10 +20,9 @@
 //   ServesGood: giao cầu không lỗi (đối thủ đỡ được, hoặc ăn điểm trực tiếp).
 // - Errors: điểm kết thúc do lỗi của người đánh cuối (đánh ra ngoài, vướng
 //   lưới, giao cầu lỗi).
-// - Smashes: đếm cú Smash/JumpSmash của user (biết type lúc bấm nút) và
-//   của AI qua NotifyShotHit — OpponentAI PHẢI gọi NotifyShotHit(hitter,
-//   type) sau mỗi TryHit thành công thì số smash của AI mới đếm đủ (xem
-//   báo cáo bàn giao; PlayerController không có event nào để đọc type).
+// - Smashes: đếm ở ShotController.OnShotExecuted (MatchManager đăng ký
+//   trong StartMatch) — chỉ đếm khi cầu thật sự launch sau fallback,
+//   không đếm vung hụt hay solver fail.
 // - Serve/Giao cầu của PlayerController là BẤT ĐỒNG BỘ: Serve()/TryHit()
 //   chỉ phát swing, cầu được Launch ở callback onContact của animation.
 //   Vì vậy MatchManager không bao giờ kiểm tra Shuttle.State ngay sau khi
@@ -84,7 +83,6 @@ namespace ShuttleLab.Match
         private int _currentRallyHits;
         private int _pendingShotHitter = -1;
         private bool _pendingIsServe;
-        private int _lastGameSeen = 1;
 
         private float _aiServeTimer;
         private float _pointEndTimer;
@@ -92,6 +90,7 @@ namespace ShuttleLab.Match
         private bool _pendingMatchWon;
         private float _rallyStuckTimer;
         private bool _shuttleSubscribed;
+        private bool _shotsSubscribed;
 
         private void Awake()
         {
@@ -125,7 +124,6 @@ namespace ShuttleLab.Match
             Rules = new MatchRules();
             Rules.Reset();
             Stats = new MatchStats();
-            _lastGameSeen = 1;
             _pendingShotHitter = -1;
             _pendingIsServe = false;
 
@@ -137,6 +135,7 @@ namespace ShuttleLab.Match
             }
 
             SubscribeShuttle();
+            SubscribeShotExecuted();
             Phase = MatchPhase.Serving;
             OnScoreChanged?.Invoke(Rules.Score);
             StartPoint();
@@ -149,11 +148,9 @@ namespace ShuttleLab.Match
             if (Players == null || Players.Length < 2
                 || Players[0] == null || Players[1] == null || Shuttle == null)
             {
-                Debug.LogError("[MatchManager] StartPoint: Players/Shuttle chưa được gán.");
+                Debug.LogWarning("[MatchManager] StartPoint: Players/Shuttle chưa được gán.");
                 return;
             }
-
-            MaybeChangeEnds();
 
             int server = Rules.Score.Server;
             int receiver = Rules.Score.Receiver;
@@ -196,7 +193,9 @@ namespace ShuttleLab.Match
 
             // Serve() của PlayerController là bất đồng bộ: cầu Launch ở
             // callback onContact của animation, không phải ngay lúc này.
-            Players[server].Serve(serveType, target);
+            // Nếu Serve trả false (đang vung / không có cầu), không đổi
+            // phase và không đếm stat — để watchdog giao lại sau.
+            if (!Players[server].Serve(serveType, target)) return;
             Stats.ShotsHit++;
             _pendingShotHitter = server;
             _pendingIsServe = true;
@@ -240,14 +239,13 @@ namespace ShuttleLab.Match
         }
 
         /// <summary>
-        /// OpponentAI gọi sau mỗi TryHit thành công để MatchManager đếm đúng
-        /// loại kỹ thuật (đặc biệt là Smash/JumpSmash). PlayerController
-        /// không có event nào mang ShotType nên không còn cách khác.
+        /// OpponentAI gọi sau mỗi TryHit thành công. Smash KHÔNG còn đếm ở
+        /// đây nữa (đếm ở OnShotExecuted — chỉ khi cầu thật sự launch).
         /// </summary>
         public void NotifyShotHit(int hitter, ShotType type)
         {
-            if (type == ShotType.Smash || type == ShotType.JumpSmash)
-                Stats.Smashes++;
+            // Giữ method để OpponentAI không phải sửa; số liệu rally/smash
+            // được đếm ở Update (LastHitter đổi) và OnShotExecuted.
         }
 
         public void BindInput(MobileInputManager input)
@@ -433,29 +431,6 @@ namespace ShuttleLab.Match
             OnMatchEnd?.Invoke(winner);
         }
 
-        // --- Đổi sân --------------------------------------------------------
-
-        /// <summary>
-        /// Hết ván thì đổi bên sân: hoán đổi HomePosition của 2 người chơi.
-        /// LƯU Ý: PlayerController.ResetForPoint() ghi đè HomePosition bằng
-        /// vị trí giao/đỡ của điểm đó, nên với bản PlayerController hiện tại
-        /// việc hoán đổi này không còn hiệu lực sau StartPoint. Đổi sân thật
-        /// sự (kèm lật camera) cần MatchRules thôi map player 0 = sân gần —
-        /// xem báo cáo bàn giao.
-        /// </summary>
-        private void MaybeChangeEnds()
-        {
-            int game = Rules.Score.CurrentGame;
-            if (game == _lastGameSeen) return;
-            _lastGameSeen = game;
-            if (Players == null || Players.Length < 2
-                || Players[0] == null || Players[1] == null) return;
-            Vector3 home0 = Players[0].HomePosition;
-            Players[0].HomePosition = Players[1].HomePosition;
-            Players[1].HomePosition = home0;
-            OnMessage?.Invoke($"Đổi sân — bắt đầu ván {game}.");
-        }
-
         // --- Input callbacks -------------------------------------------------
 
         private void OnShotRequested(ShotType type, Vector2 dir)
@@ -466,11 +441,10 @@ namespace ShuttleLab.Match
             if (ShotLibrary.IsServe(type)) return; // giao cầu chỉ dùng nút Serve
 
             Vector3 target = ComputeShotTarget(type, dir);
-            bool ok = Players[0].TryHit(type, target);
-            // TryHit true = đã vung vợt (kể cả vung hụt); cú smash tính ở đây,
-            // cú đánh qua lại thật sự được đếm khi LastHitter đổi ở Update.
-            if (ok && (type == ShotType.Smash || type == ShotType.JumpSmash))
-                Stats.Smashes++;
+            Players[0].TryHit(type, target);
+            // TryHit true = đã vung vợt (kể cả vung hụt); cú đánh qua lại
+            // thật sự được đếm khi LastHitter đổi ở Update, smash được đếm
+            // ở OnShotExecuted khi cầu launch.
         }
 
         private void OnServeRequested()
@@ -530,6 +504,26 @@ namespace ShuttleLab.Match
             if (!_shuttleSubscribed || Shuttle == null) return;
             Shuttle.OnLanded -= OnShuttleLanded;
             _shuttleSubscribed = false;
+        }
+
+        /// <summary>Đếm smash qua ShotController.OnShotExecuted — chỉ đếm khi
+        /// cầu thật sự được launch (sau fallback), không đếm vung hụt hay
+        /// solver fail như cách đếm ở TryHit/NotifyShotHit trước đây.</summary>
+        private void SubscribeShotExecuted()
+        {
+            if (_shotsSubscribed || Players == null || Players.Length < 2) return;
+            foreach (var p in Players)
+            {
+                if (p != null && p.ShotCtrl != null)
+                    p.ShotCtrl.OnShotExecuted += OnShotExecuted;
+            }
+            _shotsSubscribed = true;
+        }
+
+        private void OnShotExecuted(ShotType type, ShotQuality quality)
+        {
+            if (type == ShotType.Smash || type == ShotType.JumpSmash)
+                Stats.Smashes++;
         }
 
         private static string FaultText(MatchRules.FaultReason fault)
