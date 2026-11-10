@@ -71,7 +71,8 @@ namespace ShuttleLab.Players
             // (thiếu file/thiếu xương) cũng fallback sang humanoid
             // procedural — xem CC0CharacterRig.cs. Không throw ở đây.
             var cc0 = GetComponent<CC0CharacterRig>();
-            bool useCC0 = cc0 != null && cc0.TryBuildRig(this, Stats, out HumanoidRig cc0Rig);
+            HumanoidRig cc0Rig = null;
+            bool useCC0 = cc0 != null && cc0.TryBuildRig(this, Stats, out cc0Rig);
             if (!useCC0)
                 Rig = HumanoidBuilder.Build(gameObject, Stats, Stats.LeftHanded);
             else
